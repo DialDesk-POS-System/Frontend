@@ -1,13 +1,15 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Topbar } from "@/components/layout/Topbar";
-import { watches, brands, categories } from "@/data/mock";
+import { brands, categories } from "@/data/mock";
 import { Search, Plus, Filter, Edit3, Eye } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { useWatches } from "@/hooks/use-watches";
 
 const Inventory = () => {
   const [q, setQ] = useState("");
-  const list = watches.filter(w => (w.name + w.brand + w.modelNo).toLowerCase().includes(q.toLowerCase()));
+  const { watches } = useWatches();
+  const list = watches.filter(w => (w.modelName + w.brandName + w.modelName).toLowerCase().includes(q.toLowerCase()));
   return (
     <AppLayout>
       <Topbar title="Inventory" subtitle="Live stock across all models & units" />
@@ -63,29 +65,29 @@ const Inventory = () => {
             </thead>
             <tbody>
               {list.map(w => {
-                const low = w.stock <= 5;
+                // const low = w.stock <= 5;
                 return (
                   <tr key={w.id} className="border-t border-border/60 hover:bg-primary-soft/40 transition-colors">
                     <td className="py-3">
                       <div className="flex items-center gap-3">
-                        <img src={w.image} alt={w.name} loading="lazy" className="h-11 w-11 rounded-xl object-cover" />
+                        <img src={w.imageryUrl} alt={w.modelName} loading="lazy" className="h-11 w-11 rounded-xl object-cover" />
                         <div>
-                          <p className="font-semibold">{w.name}</p>
-                          <p className="text-[11px] text-muted-foreground">{w.modelNo} · {w.color}</p>
+                          <p className="font-semibold">{w.modelName}</p>
+                          <p className="text-[11px] text-muted-foreground">{w.modelName} · {w.color}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="py-3">{w.brand}</td>
+                    <td className="py-3">{w.brandName}</td>
                     <td className="py-3"><span className="bg-secondary px-2.5 py-1 rounded-full text-xs font-medium">{w.category}</span></td>
-                    <td className="py-3 text-muted-foreground">${w.cost.toFixed(2)}</td>
-                    <td className="py-3 font-bold text-primary">${w.price.toFixed(2)}</td>
-                    <td className="py-3 font-semibold">{w.stock}</td>
-                    <td className="py-3">
+                    <td className="py-3 text-muted-foreground">${w.costPrice.toFixed(2)}</td>
+                    <td className="py-3 font-bold text-primary">${w.sellingPrice.toFixed(2)}</td>
+                    {/* <td className="py-3 font-semibold">{w.stock}</td> */}
+                    {/* <td className="py-3">
                       <span className={cn(
                         "px-2.5 py-1 rounded-full text-xs font-semibold",
                         low ? "bg-warning/15 text-warning-foreground" : "bg-primary-soft text-primary"
                       )}>{low ? "Low" : "In stock"}</span>
-                    </td>
+                    </td> */}
                     <td className="py-3 text-right">
                       <div className="inline-flex gap-1.5">
                         <button className="h-8 w-8 rounded-lg glass-soft grid place-items-center hover:shadow-soft"><Eye className="h-3.5 w-3.5" /></button>

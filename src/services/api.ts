@@ -1,5 +1,7 @@
-const API_BASE_URL = "/api";
-
+const API_BASE_URL = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/api`
+  : '/api';
+  
 const qs = (params: Record<string, string | number | boolean | null | undefined>) => {
     const search = new URLSearchParams();
     for (const [key, value] of Object.entries(params)) {
