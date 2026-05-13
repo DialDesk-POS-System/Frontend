@@ -1,32 +1,50 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { categories, watches, brands, BillItem, WatchCategory, WatchModel } from "@/data/mock";
-import { Search, SlidersHorizontal, Plus, Minus, Trash2, CreditCard, Banknote, QrCode, Printer, Send, Watch, Clock, Gem, Activity, Heart, LayoutGrid, Edit3, X } from "lucide-react";
+import { BillItem } from "@/data/mock";
+import { Search, SlidersHorizontal, Plus, Minus, Trash2, CreditCard, Banknote, QrCode, Printer, Send, Watch, Clock, Gem, Activity, Heart, LayoutGrid, Edit3, X, Rss } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { api } from "@/services/api";
+import { categories } from "@/data/watchConstants";
+import { WatchModel } from "@/models/watch";
+import { useWatches } from "@/hooks/use-watches";
+import { useBrands } from "@/hooks/use-brands";
 
 const iconMap: Record<string, any> = { grid: LayoutGrid, watch: Watch, clock: Clock, gem: Gem, activity: Activity, heart: Heart };
 
-type OrderType = "Dine in" | "Take Away" | "Delivery";
-
 const POS = () => {
-  const [activeCat, setActiveCat] = useState<WatchCategory>("All");
+  const [activeCat, setActiveCat] = useState<string>("All");
   const [brand, setBrand] = useState<string>("All brands");
   const [query, setQuery] = useState("");
-  const [bill, setBill] = useState<BillItem[]>([
-    { watch: watches[1], qty: 1 },
-    { watch: watches[2], qty: 1 },
-  ]);
-  const [orderType, setOrderType] = useState<OrderType>("Dine in");
+  const [bill, setBill] = useState<BillItem[]>([]);
   const [discountPct, setDiscountPct] = useState(0);
+  
+  const { 
+    watches, 
+    loading: watchesLoading, 
+    error: watchesError, 
+  } = useWatches();
 
+  const {
+    brands,
+    loading: brandsLoading,
+    error: brandsError,
+  } = useBrands();
+  
   const filtered = useMemo(() => {
     return watches.filter(w =>
       (activeCat === "All" || w.category === activeCat) &&
-      (brand === "All brands" || w.brand === brand) &&
-      (query === "" || (w.name + w.modelNo + w.brand).toLowerCase().includes(query.toLowerCase()))
+      (brand === "All brands" || w.brandName === brand) &&
+      (
+        query === "" || 
+        (
+          `${w.modelName} ${w.serialNo ?? ""} ${w.brandName}`
+          .toLowerCase()
+          .includes(query.toLowerCase())
+        )
+      )
     );
-  }, [activeCat, brand, query]);
+  }, [watches, activeCat, brand, query]);
 
   const addToBill = (w: WatchModel) => {
     setBill(prev => {
@@ -34,13 +52,13 @@ const POS = () => {
       if (ex) return prev.map(b => b.watch.id === w.id ? { ...b, qty: b.qty + 1 } : b);
       return [...prev, { watch: w, qty: 1 }];
     });
-    toast.success(`${w.name} added`);
+    toast.success(`${w.modelName} added`);
   };
   const updateQty = (id: string, delta: number) =>
     setBill(prev => prev.flatMap(b => b.watch.id === id ? (b.qty + delta <= 0 ? [] : [{ ...b, qty: b.qty + delta }]) : [b]));
   const remove = (id: string) => setBill(prev => prev.filter(b => b.watch.id !== id));
 
-  const subTotal = bill.reduce((s, b) => s + b.watch.price * b.qty, 0);
+  const subTotal = bill.reduce((s, b) => s + b.watch.sellingPrice * b.qty, 0);
   const discount = subTotal * (discountPct / 100);
   const tax = (subTotal - discount) * 0.05;
   const total = subTotal - discount + tax;
@@ -98,7 +116,7 @@ const POS = () => {
                     <Icon className="h-5 w-5" />
                   </div>
                   <p className="font-semibold text-sm">{c.label}</p>
-                  <p className={cn("text-[11px] mt-0.5", active ? "text-primary-foreground/80" : "text-muted-foreground")}>{c.count} items</p>
+                  {/* <p className={cn("text-[11px] mt-0.5", active ? "text-primary-foreground/80" : "text-muted-foreground")}>{c.count} items</p> */}
                 </button>
               );
             })}
@@ -109,21 +127,21 @@ const POS = () => {
             {filtered.map(w => (
               <article key={w.id} className="glass rounded-3xl p-3 group hover:shadow-glow transition-all duration-500 animate-scale-in">
                 <div className="relative rounded-2xl overflow-hidden aspect-[4/3] bg-secondary">
-                  <img src={w.image} alt={w.name} loading="lazy" className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                  {w.tag && (
+                  <img src={w.imageryUrl} alt={w.modelName} loading="lazy" className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                  {/* {w.tag && (
                     <span className={cn(
                       "absolute top-2 left-2 text-[10px] font-bold px-2 py-1 rounded-lg",
                       w.tag === "Sale" ? "bg-warning text-warning-foreground" : w.tag === "New" ? "gradient-primary text-primary-foreground" : "bg-destructive text-destructive-foreground"
                     )}>{w.tag === "Sale" ? `${w.discountPct}% OFF` : w.tag}</span>
-                  )}
-                  <span className="absolute top-2 right-2 text-[10px] font-semibold px-2 py-1 rounded-lg glass-strong">{w.stock} in stock</span>
+                  )} */}
+                  <span className="absolute top-2 right-2 text-[10px] font-semibold px-2 py-1 rounded-lg glass-strong">{w.isSold ? "Sold" : "Available"}</span>
                 </div>
                 <div className="px-1.5 pt-3 pb-1">
-                  <p className="text-[11px] text-muted-foreground font-medium">{w.brand} · {w.modelNo}</p>
-                  <h4 className="font-semibold text-sm mt-0.5 line-clamp-1">{w.name}</h4>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">{w.color} · {w.strap}</p>
+                  <p className="text-[11px] text-muted-foreground font-medium">{w.brandName} · {w.modelName}</p>
+                  <h4 className="font-semibold text-sm mt-0.5 line-clamp-1">{w.serialNo}</h4>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">{w.color} · {w.strapMaterial}</p>
                   <div className="flex items-center justify-between mt-3">
-                    <span className="font-display font-bold text-primary">${w.price.toFixed(2)}</span>
+                    <span className="font-display font-bold text-primary">${w.sellingPrice.toFixed(2)}</span>
                     <button
                       onClick={() => addToBill(w)}
                       className="gradient-primary text-primary-foreground rounded-xl h-9 px-3 text-xs font-semibold shadow-glow hover:scale-105 transition-transform flex items-center gap-1"
@@ -152,33 +170,18 @@ const POS = () => {
             </button>
           </div>
 
-          <div className="glass-soft rounded-2xl p-1 mt-4 flex">
-            {(["Dine in", "Take Away", "Delivery"] as OrderType[]).map(t => (
-              <button
-                key={t}
-                onClick={() => setOrderType(t)}
-                className={cn(
-                  "flex-1 h-9 rounded-xl text-xs font-semibold transition-all",
-                  orderType === t ? "gradient-primary text-primary-foreground shadow-glow" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {t === "Dine in" ? "In Store" : t}
-              </button>
-            ))}
-          </div>
-
           <div className="mt-4 space-y-2.5 overflow-y-auto scrollbar-thin pr-1 flex-1 min-h-[120px] max-h-[340px]">
             {bill.length === 0 && (
               <div className="text-center text-sm text-muted-foreground py-10">Cart is empty. Add a watch to start.</div>
             )}
             {bill.map(b => (
               <div key={b.watch.id} className="glass-soft rounded-2xl p-2.5 flex items-center gap-3">
-                <img src={b.watch.image} alt={b.watch.name} loading="lazy" className="h-12 w-12 rounded-xl object-cover" />
+                <img src={b.watch.imageryUrl} alt={b.watch.modelName} loading="lazy" className="h-12 w-12 rounded-xl object-cover" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate">{b.watch.name}</p>
-                  <p className="text-[11px] text-muted-foreground truncate">{b.watch.modelNo} · {b.watch.color}</p>
+                  <p className="text-sm font-semibold truncate">{b.watch.modelName}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">{b.watch.modelName} · {b.watch.color}</p>
                   <div className="flex items-center justify-between mt-1.5">
-                    <p className="text-sm font-bold text-primary">${(b.watch.price * b.qty).toFixed(2)}</p>
+                    <p className="text-sm font-bold text-primary">${(b.watch.sellingPrice * b.qty).toFixed(2)}</p>
                     <div className="flex items-center gap-2">
                       <button onClick={() => updateQty(b.watch.id, -1)} className="h-6 w-6 rounded-md bg-primary-soft text-primary grid place-items-center hover:scale-110 transition-transform"><Minus className="h-3 w-3" /></button>
                       <span className="text-xs font-bold w-4 text-center">{b.qty}</span>

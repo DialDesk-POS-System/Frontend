@@ -1,11 +1,13 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Topbar } from "@/components/layout/Topbar";
-import { sampleBatches, brands, watches } from "@/data/mock";
+import { sampleBatches, brands } from "@/data/mock";
+import { useWatches } from "@/hooks/use-watches";
 import { Plus, Package, Calendar, Truck, FileText, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 
 const Batches = () => {
   const [showNew, setShowNew] = useState(false);
+  const { watches } = useWatches();
   return (
     <AppLayout>
       <Topbar title="Batch imports" subtitle="Group new stock arrivals into traceable batches" />
@@ -51,7 +53,7 @@ const Batches = () => {
             <div className="glass-soft rounded-2xl p-4 grid grid-cols-2 md:grid-cols-6 gap-3">
               <select className="rounded-xl bg-background border border-border h-10 px-3 text-sm col-span-2">
                 <option>Choose model…</option>
-                {watches.map(w => <option key={w.id}>{w.name}</option>)}
+                {watches.map(w => <option key={w.id}>{w.modelName}</option>)}
               </select>
               <select className="rounded-xl bg-background border border-border h-10 px-3 text-sm">
                 <option>Brand</option>

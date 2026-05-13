@@ -1,6 +1,7 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Topbar } from "@/components/layout/Topbar";
-import { recentSales, lowStockAlerts, salesTrend, watches } from "@/data/mock";
+import { recentSales, lowStockAlerts, salesTrend } from "@/data/mock";
+import { useWatches } from "@/hooks/use-watches";
 import { ArrowUpRight, DollarSign, Package, ShoppingBag, AlertTriangle, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -13,6 +14,7 @@ const stats = [
 
 const Dashboard = () => {
   const max = Math.max(...salesTrend.map(s => s.v));
+  const { watches } = useWatches();
   return (
     <AppLayout>
       <Topbar title="Welcome back, Floyd 👋" subtitle="Here's what's happening at Chronos today." />
@@ -79,12 +81,12 @@ const Dashboard = () => {
           <div className="space-y-3">
             {watches.slice(0, 3).map(w => (
               <div key={w.id} className="flex items-center gap-3">
-                <img src={w.image} alt={w.name} loading="lazy" className="h-11 w-11 rounded-xl object-cover" />
+                <img src={w.imageryUrl} alt={w.modelName} loading="lazy" className="h-11 w-11 rounded-xl object-cover" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate">{w.name}</p>
-                  <p className="text-[11px] text-muted-foreground">{w.brand} · {w.modelNo}</p>
+                  <p className="text-sm font-semibold truncate">{w.modelName}</p>
+                  <p className="text-[11px] text-muted-foreground">{w.brandName} · {w.modelName}</p>
                 </div>
-                <p className="text-sm font-bold text-primary">${w.price.toFixed(0)}</p>
+                <p className="text-sm font-bold text-primary">${w.sellingPrice.toFixed(0)}</p>
               </div>
             ))}
           </div>

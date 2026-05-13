@@ -4,25 +4,9 @@ import watch3 from "@/assets/watch-3.jpg";
 import watch4 from "@/assets/watch-4.jpg";
 import watch5 from "@/assets/watch-5.jpg";
 import watch6 from "@/assets/watch-6.jpg";
+import { WatchModel } from "@/models/watch";
 
 export type WatchCategory = "All" | "Hand Watch" | "Clock" | "Smart" | "Luxury" | "Sports" | "Womens";
-
-export interface WatchModel {
-  id: string;
-  name: string;
-  modelNo: string;
-  brand: string;
-  category: Exclude<WatchCategory, "All">;
-  price: number;
-  cost: number;
-  image: string;
-  stock: number;
-  warrantyMonths: number;
-  strap: string;
-  color: string;
-  discountPct?: number;
-  tag?: "New" | "Hot" | "Sale";
-}
 
 export const brands = ["Casio", "Seiko", "Citizen", "Rolex", "Omega", "Tissot"];
 
@@ -33,15 +17,6 @@ export const categories: { key: WatchCategory; label: string; icon: string; coun
   { key: "Luxury", label: "Luxury", icon: "gem", count: 24 },
   { key: "Sports", label: "Sports", icon: "activity", count: 19 },
   { key: "Womens", label: "Womens", icon: "heart", count: 12 },
-];
-
-export const watches: WatchModel[] = [
-  { id: "w1", name: "Crown Classic Leather", modelNo: "CR-1842", brand: "Citizen", category: "Hand Watch", price: 189.99, cost: 110, image: watch1, stock: 14, warrantyMonths: 24, strap: "Black Leather", color: "Silver", tag: "Hot" },
-  { id: "w2", name: "Aurum Gold Bracelet", modelNo: "AU-2210", brand: "Seiko", category: "Luxury", price: 459.0, cost: 280, image: watch2, stock: 6, warrantyMonths: 36, strap: "Gold Steel", color: "Gold", discountPct: 15, tag: "Sale" },
-  { id: "w3", name: "Trail Pro Digital", modelNo: "TR-5500", brand: "Casio", category: "Sports", price: 129.5, cost: 70, image: watch3, stock: 22, warrantyMonths: 24, strap: "Silicone", color: "Black/Green", tag: "New" },
-  { id: "w4", name: "Heritage Wall Clock", modelNo: "HW-1100", brand: "Tissot", category: "Clock", price: 79.0, cost: 35, image: watch4, stock: 9, warrantyMonths: 12, strap: "—", color: "Walnut" },
-  { id: "w5", name: "Rosé Diamond Series", modelNo: "RD-3380", brand: "Omega", category: "Womens", price: 689.0, cost: 410, image: watch5, stock: 3, warrantyMonths: 36, strap: "Rose Gold Steel", color: "Rose Gold", tag: "Hot" },
-  { id: "w6", name: "Neo Desk Clock", modelNo: "ND-220", brand: "Casio", category: "Clock", price: 59.99, cost: 24, image: watch6, stock: 18, warrantyMonths: 12, strap: "—", color: "Matte Black" },
 ];
 
 export interface BillItem {
