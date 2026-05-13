@@ -8,6 +8,7 @@ import { api } from "@/services/api";
 import { categories } from "@/data/watchConstants";
 import { WatchModel } from "@/models/watch";
 import { useWatches } from "@/hooks/use-watches";
+import { useBrands } from "@/hooks/use-brands";
 
 const iconMap: Record<string, any> = { grid: LayoutGrid, watch: Watch, clock: Clock, gem: Gem, activity: Activity, heart: Heart };
 
@@ -16,13 +17,22 @@ type OrderType = "Dine in" | "Take Away" | "Delivery";
 const POS = () => {
   const [activeCat, setActiveCat] = useState<string>("All");
   const [brand, setBrand] = useState<string>("All brands");
-  const [brands, setBrands] = useState<string[]>([]);
   const [query, setQuery] = useState("");
   const [bill, setBill] = useState<BillItem[]>([]);
   const [orderType, setOrderType] = useState<OrderType>("Dine in");
   const [discountPct, setDiscountPct] = useState(0);
   
-  const { watches, loading, error } = useWatches();
+  const { 
+    watches, 
+    loading: watchesLoading, 
+    error: watchesError, 
+  } = useWatches();
+
+  const {
+    brands,
+    loading: brandsLoading,
+    error: brandsError,
+  } = useBrands();
   
   const filtered = useMemo(() => {
     return watches.filter(w =>
