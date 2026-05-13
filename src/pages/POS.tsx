@@ -12,14 +12,11 @@ import { useBrands } from "@/hooks/use-brands";
 
 const iconMap: Record<string, any> = { grid: LayoutGrid, watch: Watch, clock: Clock, gem: Gem, activity: Activity, heart: Heart };
 
-type OrderType = "Dine in" | "Take Away" | "Delivery";
-
 const POS = () => {
   const [activeCat, setActiveCat] = useState<string>("All");
   const [brand, setBrand] = useState<string>("All brands");
   const [query, setQuery] = useState("");
   const [bill, setBill] = useState<BillItem[]>([]);
-  const [orderType, setOrderType] = useState<OrderType>("Dine in");
   const [discountPct, setDiscountPct] = useState(0);
   
   const { 
@@ -141,7 +138,7 @@ const POS = () => {
                 </div>
                 <div className="px-1.5 pt-3 pb-1">
                   <p className="text-[11px] text-muted-foreground font-medium">{w.brandName} · {w.modelName}</p>
-                  {/* <h4 className="font-semibold text-sm mt-0.5 line-clamp-1">{w.name}</h4> */}
+                  <h4 className="font-semibold text-sm mt-0.5 line-clamp-1">{w.serialNo}</h4>
                   <p className="text-[11px] text-muted-foreground mt-0.5">{w.color} · {w.strapMaterial}</p>
                   <div className="flex items-center justify-between mt-3">
                     <span className="font-display font-bold text-primary">${w.sellingPrice.toFixed(2)}</span>
@@ -171,21 +168,6 @@ const POS = () => {
             <button className="h-9 w-9 rounded-xl glass-soft grid place-items-center hover:shadow-soft">
               <Edit3 className="h-3.5 w-3.5" />
             </button>
-          </div>
-
-          <div className="glass-soft rounded-2xl p-1 mt-4 flex">
-            {(["Dine in", "Take Away", "Delivery"] as OrderType[]).map(t => (
-              <button
-                key={t}
-                onClick={() => setOrderType(t)}
-                className={cn(
-                  "flex-1 h-9 rounded-xl text-xs font-semibold transition-all",
-                  orderType === t ? "gradient-primary text-primary-foreground shadow-glow" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {t === "Dine in" ? "In Store" : t}
-              </button>
-            ))}
           </div>
 
           <div className="mt-4 space-y-2.5 overflow-y-auto scrollbar-thin pr-1 flex-1 min-h-[120px] max-h-[340px]">

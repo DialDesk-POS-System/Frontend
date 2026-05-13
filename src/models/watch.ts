@@ -5,6 +5,7 @@ export interface WatchModel {
     modelId: number;
 
     modelName: string;
+    modelNo: string;
     brandName: string;
     category: Category;
 
