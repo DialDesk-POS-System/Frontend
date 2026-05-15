@@ -9,6 +9,7 @@ import { categories } from "@/data/watchConstants";
 import { WatchModel } from "@/models/watch";
 import { useWatches } from "@/hooks/use-watches";
 import { useBrands } from "@/hooks/use-brands";
+import { useModels } from "@/hooks/use-models";
 
 const iconMap: Record<string, any> = { grid: LayoutGrid, watch: Watch, clock: Clock, gem: Gem, activity: Activity, heart: Heart };
 
@@ -25,6 +26,12 @@ const POS = () => {
     error: watchesError, 
   } = useWatches();
 
+  const { 
+    models, 
+    loading: modelsLoading, 
+    error: modelsError, 
+  } = useModels();
+
   const {
     brands,
     loading: brandsLoading,
@@ -32,19 +39,19 @@ const POS = () => {
   } = useBrands();
   
   const filtered = useMemo(() => {
-    return watches.filter(w =>
-      (activeCat === "All" || w.category === activeCat) &&
-      (brand === "All brands" || w.brandName === brand) &&
+    return models.filter(m =>
+      (activeCat === "All" || m.category === activeCat) &&
+      (brand === "All brands" || m.brandName === brand) &&
       (
         query === "" || 
         (
-          `${w.modelName} ${w.serialNo ?? ""} ${w.brandName}`
+          `${m.modelName} ${m.modelNo} ${m.brandName}`
           .toLowerCase()
           .includes(query.toLowerCase())
         )
       )
     );
-  }, [watches, activeCat, brand, query]);
+  }, [models, activeCat, brand, query]);
 
   const addToBill = (w: WatchModel) => {
     setBill(prev => {
@@ -124,26 +131,26 @@ const POS = () => {
 
           {/* Product grid */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-5">
-            {filtered.map(w => (
-              <article key={w.id} className="glass rounded-3xl p-3 group hover:shadow-glow transition-all duration-500 animate-scale-in">
+            {filtered.map(m => (
+              <article key={m.id} className="glass rounded-3xl p-3 group hover:shadow-glow transition-all duration-500 animate-scale-in">
                 <div className="relative rounded-2xl overflow-hidden aspect-[4/3] bg-secondary">
-                  <img src={w.imageryUrl} alt={w.modelName} loading="lazy" className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                  <img src={m.imageryUrl} alt={m.modelName} loading="lazy" className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-700" />
                   {/* {w.tag && (
                     <span className={cn(
                       "absolute top-2 left-2 text-[10px] font-bold px-2 py-1 rounded-lg",
                       w.tag === "Sale" ? "bg-warning text-warning-foreground" : w.tag === "New" ? "gradient-primary text-primary-foreground" : "bg-destructive text-destructive-foreground"
                     )}>{w.tag === "Sale" ? `${w.discountPct}% OFF` : w.tag}</span>
                   )} */}
-                  <span className="absolute top-2 right-2 text-[10px] font-semibold px-2 py-1 rounded-lg glass-strong">{w.isSold ? "Sold" : "Available"}</span>
+                  <span className="absolute top-2 right-2 text-[10px] font-semibold px-2 py-1 rounded-lg glass-strong">{m.isActive ? "Available" : "Sold"}</span>
                 </div>
                 <div className="px-1.5 pt-3 pb-1">
-                  <p className="text-[11px] text-muted-foreground font-medium">{w.brandName} · {w.modelName}</p>
-                  <h4 className="font-semibold text-sm mt-0.5 line-clamp-1">{w.serialNo}</h4>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">{w.color} · {w.strapMaterial}</p>
+                  <p className="text-[11px] text-muted-foreground font-medium">{m.brandName} · {m.modelName}</p>
+                  <h4 className="font-semibold text-sm mt-0.5 line-clamp-1">{m.modelNo}</h4>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">{m.modelName} · {m.brandName}</p>
                   <div className="flex items-center justify-between mt-3">
-                    <span className="font-display font-bold text-primary">${w.sellingPrice.toFixed(2)}</span>
+                    <span className="font-display font-bold text-primary">${m.basePrice.toFixed(2)}</span>
                     <button
-                      onClick={() => addToBill(w)}
+                      //onClick={() => addToBill(m)}
                       className="gradient-primary text-primary-foreground rounded-xl h-9 px-3 text-xs font-semibold shadow-glow hover:scale-105 transition-transform flex items-center gap-1"
                     >
                       <Plus className="h-3.5 w-3.5" /> Add

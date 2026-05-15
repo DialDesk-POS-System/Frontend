@@ -73,7 +73,7 @@ const Inventory = () => {
                         <img src={w.imageryUrl} alt={w.modelName} loading="lazy" className="h-11 w-11 rounded-xl object-cover" />
                         <div>
                           <p className="font-semibold">{w.modelName}</p>
-                          <p className="text-[11px] text-muted-foreground">{w.Model} · {w.color}</p>
+                          <p className="text-[11px] text-muted-foreground">{w.modelNo} · {w.color}</p>
                         </div>
                       </div>
                     </td>
