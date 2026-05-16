@@ -38,20 +38,48 @@ const POS = () => {
     error: brandsError,
   } = useBrands();
   
-  const filtered = useMemo(() => {
-    return models.filter(m =>
-      (activeCat === "All" || m.category === activeCat) &&
-      (brand === "All brands" || m.brandName === brand) &&
+  const groupItems = useMemo(() => {
+    const filteredWatches = watches.filter(w =>
+      (activeCat === "All" || w.category === activeCat) &&
+      (brand === "All brands" || w.brandName === brand) && 
       (
-        query === "" || 
+        query === "" ||
         (
-          `${m.modelName} ${m.modelNo} ${m.brandName}`
+          `${w.modelName} ${w.modelNo} ${w.brandName} ${w.serialNo}`
           .toLowerCase()
           .includes(query.toLowerCase())
         )
       )
     );
-  }, [models, activeCat, brand, query]);
+
+    if (query) {
+      const exactSerialMatches = filteredWatches.filter(w =>
+        w.serialNo?.toLowerCase() === query.toLowerCase()
+      );
+
+      if (exactSerialMatches.length > 0) {
+        return exactSerialMatches.map(w => ({
+          type: "watch" as const,
+          item: w
+        }));
+      }
+    }
+
+    const groups = new Map<number, typeof watches>();
+    filteredWatches.forEach(w => {
+      if (!groups.has(w.modelId))
+        groups.set(w.modelId, []);
+      groups.get(w.modelId)!.push(w);
+    });
+
+    return Array.from(groups.values()).map(group => {
+      if (group.length === 1) {
+        return { type: "watch" as const, item: group[0] };
+      }
+
+      return {  type: "model" as const, items: group, firstItem: group[0] };
+    });
+  }, [watches, activeCat, brand, query]);
 
   const addToBill = (w: WatchModel) => {
     setBill(prev => {
@@ -131,35 +159,61 @@ const POS = () => {
 
           {/* Product grid */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-5">
-            {filtered.map(m => (
-              <article key={m.id} className="glass rounded-3xl p-3 group hover:shadow-glow transition-all duration-500 animate-scale-in">
-                <div className="relative rounded-2xl overflow-hidden aspect-[4/3] bg-secondary">
-                  <img src={m.imageryUrl} alt={m.modelName} loading="lazy" className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                  {/* {w.tag && (
-                    <span className={cn(
-                      "absolute top-2 left-2 text-[10px] font-bold px-2 py-1 rounded-lg",
-                      w.tag === "Sale" ? "bg-warning text-warning-foreground" : w.tag === "New" ? "gradient-primary text-primary-foreground" : "bg-destructive text-destructive-foreground"
-                    )}>{w.tag === "Sale" ? `${w.discountPct}% OFF` : w.tag}</span>
-                  )} */}
-                  <span className="absolute top-2 right-2 text-[10px] font-semibold px-2 py-1 rounded-lg glass-strong">{m.isActive ? "Available" : "Sold"}</span>
-                </div>
-                <div className="px-1.5 pt-3 pb-1">
-                  <p className="text-[11px] text-muted-foreground font-medium">{m.brandName} · {m.modelName}</p>
-                  <h4 className="font-semibold text-sm mt-0.5 line-clamp-1">{m.modelNo}</h4>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">{m.modelName} · {m.brandName}</p>
-                  <div className="flex items-center justify-between mt-3">
-                    <span className="font-display font-bold text-primary">${m.basePrice.toFixed(2)}</span>
-                    <button
-                      //onClick={() => addToBill(m)}
-                      className="gradient-primary text-primary-foreground rounded-xl h-9 px-3 text-xs font-semibold shadow-glow hover:scale-105 transition-transform flex items-center gap-1"
-                    >
-                      <Plus className="h-3.5 w-3.5" /> Add
-                    </button>
-                  </div>
-                </div>
-              </article>
-            ))}
-            {filtered.length === 0 && (
+            {groupItems.map(group => {
+              if (group.type === "watch") {
+                const w = group.item;
+                return (
+                  <article key={w.id} className="glass rounded-3xl p-3 group hover:shadow-glow transition-all duration-500 animate-scale-in">
+                    <div className="relative rounded-2xl overflow-hidden aspect-[4/3] bg-secondary">
+                      <img src={w.imageryUrl} alt={w.modelName} loading="lazy" className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                      <span className="absolute top-2 right-2 text-[10px] font-semibold px-2 py-1 rounded-lg glass-strong">{!w.isSold ? "Available" : "Sold"}</span>
+                    </div>
+                    <div className="px-1.5 pt-3 pb-1">
+                      <p className="text-[11px] text-muted-foreground font-medium">{w.brandName} · {w.modelName}</p>
+                      <h4 className="font-semibold text-sm mt-0.5 line-clamp-1">{w.modelNo}</h4>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">SN: {w.serialNo}</p>
+                      <div className="flex items-center justify-between mt-3">
+                        <span className="font-display font-bold text-primary">${w.sellingPrice?.toFixed(2)}</span>
+                        <button
+                          onClick={() => addToBill(w)}
+                          className="gradient-primary text-primary-foreground rounded-xl h-9 px-3 text-xs font-semibold shadow-glow hover:scale-105 transition-transform flex items-center gap-1"
+                        >
+                          <Plus className="h-3.5 w-3.5" /> Add
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                );
+              } else {
+                const firstWatch = group.firstItem;
+                const actualModel = models.find(mod => mod.id === firstWatch.modelId);
+                const imageUrl = actualModel?.imageryUrl || firstWatch.imageryUrl;
+
+                return (
+                  <article key={`model-${firstWatch.modelId}`} className="glass rounded-3xl p-3 border border-primary/20 group hover:shadow-glow transition-all duration-500 animate-scale-in">
+                    <div className="relative rounded-2xl overflow-hidden aspect-[4/3] bg-secondary">
+                      <img src={imageUrl} alt={firstWatch.modelName} loading="lazy" className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                      <span className="absolute top-2 right-2 text-[10px] font-semibold px-2 py-1 rounded-lg bg-primary text-primary-foreground shadow-glow">{group.items.length} in stock</span>
+                    </div>
+                    <div className="px-1.5 pt-3 pb-1">
+                      <p className="text-[11px] text-muted-foreground font-medium">{firstWatch.brandName} · {firstWatch.modelName}</p>
+                      <h4 className="font-semibold text-sm mt-0.5 line-clamp-1">{firstWatch.modelNo}</h4>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">Select a variant to add</p>
+                      <div className="flex items-center justify-between mt-3">
+                        <span className="font-display font-bold text-primary">Models</span>
+                        <button
+                          // onClick={() => openModelPopup(group.items)}
+                          className="glass-strong text-foreground rounded-xl h-9 px-3 text-xs font-semibold shadow-soft hover:bg-primary hover:text-primary-foreground transition-all flex items-center gap-1"
+                        >
+                          Select Watch
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                );
+              }
+            })}
+            {groupItems.length === 0 && (
               <div className="col-span-full glass rounded-3xl p-12 text-center text-muted-foreground">No watches match your filters.</div>
             )}
           </div>
