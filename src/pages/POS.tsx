@@ -19,6 +19,9 @@ const POS = () => {
   const [query, setQuery] = useState("");
   const [bill, setBill] = useState<BillItem[]>([]);
   const [discountPct, setDiscountPct] = useState(0);
+
+  const [selectedModelGroup, setSelectedModelGroup] = useState<WatchModel[] | null>(null);
+  const [popupFilters, setPopupFilters] = useState({ serialNo: '', color: '', strapMaterial: '', category: '' });
   
   const { 
     watches, 
@@ -39,18 +42,21 @@ const POS = () => {
   } = useBrands();
   
   const groupItems = useMemo(() => {
-    const filteredWatches = watches.filter(w =>
-      (activeCat === "All" || w.category === activeCat) &&
-      (brand === "All brands" || w.brandName === brand) && 
-      (
-        query === "" ||
-        (
-          `${w.modelName} ${w.modelNo} ${w.brandName} ${w.serialNo}`
-          .toLowerCase()
-          .includes(query.toLowerCase())
-        )
-      )
-    );
+    const filteredWatches = watches.filter(w => {
+      const matchesCat = (activeCat === "All" || w.category === activeCat);
+      const matchesBrand = (brand === "All brands" || w.brandName === brand);
+
+      if (query === "") return matchesCat && matchesBrand;
+
+      const searchStr = 
+        `${w.modelName} ${w.modelNo} ${w.brandName} ${w.serialNo}`
+          .toLowerCase();
+      const queryWords = query.toLowerCase().split(/\s+/);
+      const matchesSearch = queryWords.every(word =>
+        searchStr.includes(word)
+      );
+      return matchesCat && matchesBrand && matchesSearch;
+    });
 
     if (query) {
       const exactSerialMatches = filteredWatches.filter(w =>
@@ -104,6 +110,16 @@ const POS = () => {
     toast.success(`Payment confirmed (${method})`, { description: `Invoice ${inv} · $${total.toFixed(2)}` });
     setBill([]);
   };
+
+  const popupFilteredItems = useMemo(() => {
+    if (!selectedModelGroup) return [];
+    return selectedModelGroup.filter(w => 
+      (popupFilters.serialNo === "" || w.serialNo?.toLowerCase().includes(popupFilters.serialNo.toLowerCase())) &&
+      (popupFilters.color === "" || w.color === popupFilters.color) &&
+      (popupFilters.strapMaterial === "" || w.strapMaterial === popupFilters.strapMaterial) &&
+      (popupFilters.category === "" || w.category?.toString() === popupFilters.category)
+    );
+  }, [selectedModelGroup, popupFilters]);
 
   return (
     <AppLayout>
@@ -202,7 +218,10 @@ const POS = () => {
                       <div className="flex items-center justify-between mt-3">
                         <span className="font-display font-bold text-primary">Models</span>
                         <button
-                          // onClick={() => openModelPopup(group.items)}
+                          onClick={() => {
+                            setSelectedModelGroup(group.items);
+                            setPopupFilters({ serialNo: '', color: '', strapMaterial: '', category: '' });
+                          }}
                           className="glass-strong text-foreground rounded-xl h-9 px-3 text-xs font-semibold shadow-soft hover:bg-primary hover:text-primary-foreground transition-all flex items-center gap-1"
                         >
                           Select Watch
@@ -306,6 +325,95 @@ const POS = () => {
           </button>
         </aside>
       </div>
+
+      {/* Select Watch Modal */}
+      {selectedModelGroup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+          <div className="glass-strong rounded-3xl w-full max-w-3xl max-h-[80vh] flex flex-col overflow-hidden animate-scale-in">
+            {/* Header */}
+            <div className="p-5 border-b border-border/50 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold font-display">Select Watch Variant</h2>
+                <p className="text-sm text-muted-foreground">{selectedModelGroup[0]?.brandName} · {selectedModelGroup[0]?.modelName}</p>
+              </div>
+              <button onClick={() => setSelectedModelGroup(null)} className="h-10 w-10 rounded-full glass flex items-center justify-center hover:bg-destructive/10 hover:text-destructive transition-colors">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            {/* Filters */}
+            <div className="p-5 bg-secondary/30 grid grid-cols-2 md:grid-cols-4 gap-3">
+              <input 
+                placeholder="Search Serial No..." 
+                value={popupFilters.serialNo}
+                onChange={e => setPopupFilters(p => ({ ...p, serialNo: e.target.value }))}
+                className="h-10 rounded-xl px-3 text-sm outline-none bg-background border border-border"
+              />
+              <select 
+                value={popupFilters.category}
+                onChange={e => setPopupFilters(p => ({ ...p, category: e.target.value }))}
+                className="h-10 rounded-xl px-3 text-sm outline-none bg-background border border-border"
+              >
+                <option value="">All Categories</option>
+                {Array.from(new Set(selectedModelGroup.map(w => w.category?.toString()).filter(Boolean))).map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+              <select 
+                value={popupFilters.color}
+                onChange={e => setPopupFilters(p => ({ ...p, color: e.target.value }))}
+                className="h-10 rounded-xl px-3 text-sm outline-none bg-background border border-border"
+              >
+                <option value="">All Colors</option>
+                {Array.from(new Set(selectedModelGroup.map(w => w.color).filter(Boolean))).map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+              <select 
+                value={popupFilters.strapMaterial}
+                onChange={e => setPopupFilters(p => ({ ...p, strapMaterial: e.target.value }))}
+                className="h-10 rounded-xl px-3 text-sm outline-none bg-background border border-border"
+              >
+                <option value="">All Straps</option>
+                {Array.from(new Set(selectedModelGroup.map(w => w.strapMaterial).filter(Boolean))).map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* List */}
+            <div className="flex-1 overflow-y-auto p-5 grid grid-cols-1 md:grid-cols-2 gap-3">
+              {popupFilteredItems.map(w => (
+                <div key={w.id} className="glass rounded-2xl p-3 flex items-center justify-between group hover:shadow-soft transition-all">
+                  <div>
+                    <p className="font-semibold text-sm">SN: {w.serialNo || "N/A"}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{w.color || "No Color"} · {w.strapMaterial || "No Strap"}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="font-bold text-primary">${w.sellingPrice?.toFixed(2)}</span>
+                    <button 
+                      onClick={() => {
+                        addToBill(w);
+                        setSelectedModelGroup(null);
+                      }}
+                      disabled={w.isSold}
+                      className={cn(
+                        "h-8 px-3 rounded-xl text-xs font-semibold transition-all flex items-center gap-1",
+                        w.isSold ? "bg-muted text-muted-foreground cursor-not-allowed" : "gradient-primary text-primary-foreground shadow-glow hover:scale-105"
+                      )}
+                    >
+                      {w.isSold ? "Sold" : "Add"}
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {popupFilteredItems.length === 0 && (
+                <div className="col-span-full py-10 text-center text-muted-foreground text-sm">No variants match these filters.</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </AppLayout>
   );
 };
