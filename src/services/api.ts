@@ -259,4 +259,15 @@ export const api = {
         search: async(filter:any)=>
             apiRequest<any[]>("get",`/Watch/search${qs(filter)}`),
     },
+
+    analytics: {
+        getTotalUnits: async()=>
+            apiRequest<number>("get",`/Analytics/total-units`),
+        getTotalModels: async()=>
+            apiRequest<number>("get",`/Analytics/total-models`),
+        getLowStockCount: async(threshold:number)=>
+            apiRequest<number>("get",`/Analytics/low-stock-count${qs({threshold})}`),
+        getTotalStockValue: async()=>
+            apiRequest<number>("get",`/Analytics/total-stock-value`),
+    },
 };

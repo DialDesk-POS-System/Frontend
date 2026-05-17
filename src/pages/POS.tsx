@@ -43,7 +43,7 @@ const POS = () => {
   
   const groupItems = useMemo(() => {
     const filteredWatches = watches.filter(w => {
-      const matchesCat = (activeCat === "All" || w.category === activeCat);
+      const matchesCat = (activeCat === "All" || w.category?.toString() === activeCat.toString());
       const matchesBrand = (brand === "All brands" || w.brandName === brand);
 
       if (query === "") return matchesCat && matchesBrand;
@@ -122,8 +122,9 @@ const POS = () => {
   }, [selectedModelGroup, popupFilters]);
 
   return (
-    <AppLayout>
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_400px] gap-4">
+    <>
+      <AppLayout>
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_400px] gap-4">
         {/* Left: catalogue */}
         <section>
           <div className="flex items-center gap-3 mb-5">
@@ -141,8 +142,8 @@ const POS = () => {
               onChange={e => setBrand(e.target.value)}
               className="glass rounded-2xl h-12 px-4 text-sm font-medium outline-none cursor-pointer"
             >
-              <option>All brands</option>
-              {brands.map(b => <option key={b}>{b}</option>)}
+              <option value="All brands">All brands</option>
+              {brands.map(b => <option key={b} value={b}>{b}</option>)}
             </select>
             <button className="glass rounded-2xl h-12 w-12 grid place-items-center hover:shadow-glow transition-shadow">
               <SlidersHorizontal className="h-4 w-4" />
@@ -325,11 +326,18 @@ const POS = () => {
           </button>
         </aside>
       </div>
+      </AppLayout>
 
       {/* Select Watch Modal */}
       {selectedModelGroup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
-          <div className="glass-strong rounded-3xl w-full max-w-3xl max-h-[80vh] flex flex-col overflow-hidden animate-scale-in">
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
+          onMouseDown={() => setSelectedModelGroup(null)}
+        >
+          <div 
+            className="glass-strong rounded-3xl w-full max-w-3xl max-h-[80vh] flex flex-col overflow-hidden animate-scale-in shadow-2xl"
+            onMouseDown={e => e.stopPropagation()}
+          >
             {/* Header */}
             <div className="p-5 border-b border-border/50 flex items-center justify-between">
               <div>
@@ -414,7 +422,7 @@ const POS = () => {
           </div>
         </div>
       )}
-    </AppLayout>
+    </>
   );
 };
 
