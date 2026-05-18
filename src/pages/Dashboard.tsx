@@ -1,20 +1,32 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Topbar } from "@/components/layout/Topbar";
 import { recentSales, lowStockAlerts, salesTrend } from "@/data/mock";
+import { useAnalytics } from "@/hooks/use-analytics";
 import { useWatches } from "@/hooks/use-watches";
 import { ArrowUpRight, DollarSign, Package, ShoppingBag, AlertTriangle, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
 
-const stats = [
-  { label: "Today's Revenue", value: "$3,128.40", delta: "+18.2%", icon: DollarSign, accent: "from-emerald-400/30 to-emerald-600/20" },
-  { label: "Orders", value: "42", delta: "+6", icon: ShoppingBag, accent: "from-teal-400/30 to-teal-600/20" },
-  { label: "Stock Units", value: "235", delta: "−4", icon: Package, accent: "from-lime-400/30 to-lime-600/20" },
-  { label: "Profit Margin", value: "38.6%", delta: "+1.4%", icon: TrendingUp, accent: "from-green-400/30 to-emerald-600/20" },
-];
-
 const Dashboard = () => {
+  const {
+    analytics,
+    loading: analyticsLoading,
+    error: analyticsError,
+  } = useAnalytics();
+
+  const {
+    watches,
+    loading: watchesLoading,
+    error: watchesError,
+  } = useWatches();
+
+  const stats = [
+    { label: "Today's Revenue", value: `${"$" + analytics.todayRevenue}`, delta: "+18.2%", icon: DollarSign, accent: "from-emerald-400/30 to-emerald-600/20" },
+    { label: "Orders", value: "42", delta: "+6", icon: ShoppingBag, accent: "from-teal-400/30 to-teal-600/20" },
+    { label: "Stock Units", value: `${watches.length}`, delta: "−4", icon: Package, accent: "from-lime-400/30 to-lime-600/20" },
+    { label: "Profit Margin", value: `${analytics.todayRevenue}`, delta: "+1.4%", icon: TrendingUp, accent: "from-green-400/30 to-emerald-600/20" },
+  ];
+
   const max = Math.max(...salesTrend.map(s => s.v));
-  const { watches } = useWatches();
   return (
     <AppLayout>
       <Topbar title="Welcome back, Floyd 👋" subtitle="Here's what's happening at Chronos today." />
@@ -67,15 +79,24 @@ const Dashboard = () => {
             <AlertTriangle className="h-4 w-4 text-warning" />
           </div>
           <div className="space-y-3">
-            {lowStockAlerts.map(a => (
-              <div key={a.modelNo} className="glass-soft rounded-2xl p-3 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold">{a.model}</p>
-                  <p className="text-[11px] text-muted-foreground">{a.modelNo}</p>
-                </div>
-                <span className="text-xs font-bold text-warning bg-warning/15 px-2.5 py-1 rounded-full">{a.stock} left</span>
+            {analytics.lowStockModels?.length === 0 ? (
+              <div className="text-sm text-muted-foreground p-4 text-center border border-dashed border-border/50 rounded-2xl">
+                All models are well stocked!
               </div>
-            ))}
+            ) : (
+              analytics.lowStockModels?.map(a => (
+                <div key={a.modelNo} className="glass-soft rounded-2xl p-3 flex items-center gap-3">
+                  <img src={a.imageryUrl} alt={a.modelName} className="h-10 w-10 rounded-xl object-cover bg-secondary/50" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate">{a.modelName}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{a.modelNo}</p>
+                  </div>
+                  <span className="text-xs font-bold text-warning bg-warning/15 px-2.5 py-1 rounded-full whitespace-nowrap">
+                    {watches.filter(w => w.modelNo == a.modelNo).length} left
+                  </span>
+                </div>
+              ))
+            )}
           </div>
           <h4 className="font-display font-bold mt-6 mb-3">Top picks</h4>
           <div className="space-y-3">

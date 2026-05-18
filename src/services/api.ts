@@ -265,9 +265,13 @@ export const api = {
             apiRequest<number>("get",`/Analytics/total-units`),
         getTotalModels: async()=>
             apiRequest<number>("get",`/Analytics/total-models`),
-        getLowStockCount: async(threshold:number)=>
-            apiRequest<number>("get",`/Analytics/low-stock-count${qs({threshold})}`),
+        getLowStockModels: async()=>
+            apiRequest<any[]>("get",`/Analytics/low-stock-models`),
         getTotalStockValue: async()=>
             apiRequest<number>("get",`/Analytics/total-stock-value`),
+        getTodayRevenue: async(date: string | Date) => {
+            const dateStr = date instanceof Date ? date.toISOString() : date;
+            return apiRequest<number>("get", `/Analytics/today-revenue${qs({ date: dateStr })}`);
+        }
     },
 };
