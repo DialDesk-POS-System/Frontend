@@ -1,10 +1,12 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Topbar } from "@/components/layout/Topbar";
-import { recentSales, lowStockAlerts, salesTrend } from "@/data/mock";
 import { useAnalytics } from "@/hooks/use-analytics";
+import { useOrders } from "@/hooks/use-orders";
+import { useSales } from "@/hooks/use-sales";
 import { useWatches } from "@/hooks/use-watches";
 import { ArrowUpRight, DollarSign, Package, ShoppingBag, AlertTriangle, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useMemo } from "react";
 
 const Dashboard = () => {
   const {
@@ -19,14 +21,54 @@ const Dashboard = () => {
     error: watchesError,
   } = useWatches();
 
+  const {
+    sales,
+    loading: salesLoading,
+    error: salesError,
+  } = useSales();
+
+  const {
+    orders,
+    loading: ordersLoading,
+    error: ordersError,
+  } = useOrders();
+
+  const recentSales = sales.slice(0, 10);
+
   const stats = [
     { label: "Today's Revenue", value: `${"$" + analytics.todayRevenue}`, delta: "+18.2%", icon: DollarSign, accent: "from-emerald-400/30 to-emerald-600/20" },
-    { label: "Orders", value: "42", delta: "+6", icon: ShoppingBag, accent: "from-teal-400/30 to-teal-600/20" },
+    { label: "Orders", value: `${orders.length}`, delta: "+6", icon: ShoppingBag, accent: "from-teal-400/30 to-teal-600/20" },
     { label: "Stock Units", value: `${watches.length}`, delta: "−4", icon: Package, accent: "from-lime-400/30 to-lime-600/20" },
     { label: "Profit Margin", value: `${analytics.todayRevenue}`, delta: "+1.4%", icon: TrendingUp, accent: "from-green-400/30 to-emerald-600/20" },
   ];
 
-  const max = Math.max(...salesTrend.map(s => s.v));
+  const computedSalesTrend = useMemo(() => {
+    const trend = [];
+    const today = new Date();
+    
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      
+      const dayStr = d.toLocaleDateString("en-US", { weekday: "short" });
+      
+      const daySales = sales.filter(s => {
+        if (!s.saleDate) return false;
+        const saleDate = new Date(s.saleDate);
+        return saleDate.getDate() === d.getDate() &&
+               saleDate.getMonth() === d.getMonth() &&
+               saleDate.getFullYear() === d.getFullYear();
+      });
+      
+      const totalForDay = daySales.reduce((sum, current) => sum + Number(current.totalAmount || current.total || 0), 0);
+      
+      trend.push({ d: dayStr, v: totalForDay });
+    }
+    return trend;
+  }, [sales]);
+
+  console.log(computedSalesTrend)
+  const max = Math.max(...computedSalesTrend.map(s => s.v), 1);
   return (
     <AppLayout>
       <Topbar title="Welcome back, Floyd 👋" subtitle="Here's what's happening at Chronos today." />
@@ -59,11 +101,11 @@ const Dashboard = () => {
             </Link>
           </div>
           <div className="flex items-end gap-3 h-52">
-            {salesTrend.map((d, i) => (
-              <div key={d.d} className="flex-1 flex flex-col items-center gap-2">
-                <div className="w-full flex-1 flex items-end">
+            {computedSalesTrend.map((d, i) => (
+              <div key={d.d} className="flex-1 flex flex-col items-center gap-2 h-full">
+                <div className="w-full relative flex-1">
                   <div
-                    className="w-full rounded-t-xl gradient-primary shadow-glow transition-all duration-700"
+                    className="absolute bottom-0 w-full rounded-t-xl gradient-primary shadow-glow transition-all duration-700"
                     style={{ height: `${(d.v / max) * 100}%`, animationDelay: `${i * 60}ms` }}
                   />
                 </div>
@@ -132,16 +174,33 @@ const Dashboard = () => {
               </tr>
             </thead>
             <tbody>
-              {recentSales.map(s => (
-                <tr key={s.invoice} className="border-t border-border/60 hover:bg-primary-soft/40 transition-colors">
-                  <td className="py-3 font-semibold text-primary">{s.invoice}</td>
-                  <td className="py-3">{s.customer}</td>
-                  <td className="py-3">{s.items}</td>
-                  <td className="py-3"><span className="px-2.5 py-1 rounded-full bg-secondary text-xs font-medium">{s.method}</span></td>
-                  <td className="py-3 text-muted-foreground">{s.time}</td>
-                  <td className="py-3 font-bold text-right">${s.total.toFixed(2)}</td>
+              {recentSales.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-muted-foreground text-sm border-t border-border/60">
+                    No recent sales found.
+                  </td>
                 </tr>
-              ))}
+              ) : (
+                recentSales.map(s => {
+                  const methodStr = s.paymentMethod || "";
+                  const formattedMethod = methodStr.toLowerCase() === "credit_card" || methodStr.toLowerCase() === "creditcard" ? "Credit Card" 
+                                        : methodStr.toLowerCase() === "debit_card" ? "Debit Card"
+                                        : methodStr.toLowerCase() === "cash" ? "Cash" 
+                                        : methodStr.toLowerCase() === "bank_transfer" ? "Bank Transfer"
+                                        : methodStr.charAt(0).toUpperCase() + methodStr.slice(1).replace('_', ' ');
+                  
+                  return (
+                    <tr key={s.invoiceNo} className="border-t border-border/60 hover:bg-primary-soft/40 transition-colors">
+                      <td className="py-3 font-semibold text-primary">{s.invoice || s.invoiceNo}</td>
+                      <td className="py-3">{s.customer || s.customerName || "-"}</td>
+                      <td className="py-3">{s.items || s.saleItems?.length || 0}</td>
+                      <td className="py-3"><span className="px-2.5 py-1 rounded-full bg-secondary text-xs font-medium">{formattedMethod}</span></td>
+                      <td className="py-3 text-muted-foreground">{s.saleDate ? new Date(s.saleDate).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : "-"}</td>
+                      <td className="py-3 font-bold text-right">${(s.total || s.totalAmount || 0).toFixed(2)}</td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
