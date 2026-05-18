@@ -107,7 +107,7 @@ const Inventory = () => {
         {[
           { label: "Total units", value: analytics.totalUnits, accent: "from-emerald-400/30" },
           { label: "Models", value: analytics.totalModels, accent: "from-teal-400/30" },
-          { label: "Low stock", value: analytics.lowStockCount, accent: "from-amber-400/30" },
+          { label: "Low stock", value: analytics.lowStockModels.length, accent: "from-amber-400/30" },
           { label: "Stock value", value: `$ ${analytics.totalStockValue}`, accent: "from-lime-400/30" },
         ].map(s => (
           <div key={s.label} className="glass rounded-3xl p-5 relative overflow-hidden">

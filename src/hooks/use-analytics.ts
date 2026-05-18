@@ -4,16 +4,18 @@ import { useEffect, useState } from "react";
 export interface Analytics {
   totalUnits: number;
   totalModels: number;
-  lowStockCount: number;
+  lowStockModels: any;
   totalStockValue: number;
+  todayRevenue: number;
 }
 
 export const useAnalytics = () => {
   const [analytics, setAnalytics] = useState<Analytics>({
     totalUnits: 0,
     totalModels: 0,
-    lowStockCount: 0,
+    lowStockModels: [],
     totalStockValue: 0,
+    todayRevenue: 0,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,15 +25,20 @@ export const useAnalytics = () => {
       setLoading(true);
 
       try {
+        const today = new Date();
+
         const totalUnits = await api.analytics.getTotalUnits();
         const totalModels = await api.analytics.getTotalModels();
-        const lowStockCount = await api.analytics.getLowStockCount(5);
+        const lowStockModels = await api.analytics.getLowStockModels();
         const totalStockValue = await api.analytics.getTotalStockValue();
+        const todayRevenue = await api.analytics.getTodayRevenue(today);
+
         setAnalytics({
           totalUnits,
           totalModels,
-          lowStockCount,
+          lowStockModels,
           totalStockValue,
+          todayRevenue,
         });
         console.log(analytics);
       } catch (err: any) {
