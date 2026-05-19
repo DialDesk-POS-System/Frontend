@@ -10,6 +10,7 @@ import { WatchModel } from "@/models/watch";
 import { useWatches } from "@/hooks/use-watches";
 import { useBrands } from "@/hooks/use-brands";
 import { useModels } from "@/hooks/use-models";
+import { useSearch } from "@/hooks/use-search";
 
 const iconMap: Record<string, any> = { grid: LayoutGrid, watch: Watch, clock: Clock, gem: Gem, activity: Activity, heart: Heart };
 
@@ -41,51 +42,11 @@ const POS = () => {
     error: brandsError,
   } = useBrands();
   
-  const groupItems = useMemo(() => {
-    const filteredWatches = watches.filter(w => {
-      const matchesCat = (activeCat === "All" || w.category?.toString() === activeCat.toString());
-      const matchesBrand = (brand === "All brands" || w.brandName === brand);
-
-      if (query === "") return matchesCat && matchesBrand;
-
-      const searchStr = 
-        `${w.modelName} ${w.modelNo} ${w.brandName} ${w.serialNo}`
-          .toLowerCase();
-      const queryWords = query.toLowerCase().split(/\s+/);
-      const matchesSearch = queryWords.every(word =>
-        searchStr.includes(word)
-      );
-      return matchesCat && matchesBrand && matchesSearch;
-    });
-
-    if (query) {
-      const exactSerialMatches = filteredWatches.filter(w =>
-        w.serialNo?.toLowerCase() === query.toLowerCase()
-      );
-
-      if (exactSerialMatches.length > 0) {
-        return exactSerialMatches.map(w => ({
-          type: "watch" as const,
-          item: w
-        }));
-      }
-    }
-
-    const groups = new Map<number, typeof watches>();
-    filteredWatches.forEach(w => {
-      if (!groups.has(w.modelId))
-        groups.set(w.modelId, []);
-      groups.get(w.modelId)!.push(w);
-    });
-
-    return Array.from(groups.values()).map(group => {
-      if (group.length === 1) {
-        return { type: "watch" as const, item: group[0] };
-      }
-
-      return {  type: "model" as const, items: group, firstItem: group[0] };
-    });
-  }, [watches, activeCat, brand, query]);
+  const {
+    groupItems,
+    loading: searchLoading,
+    error: searchError,
+  } = useSearch(query, brand, activeCat);
 
   const addToBill = (w: WatchModel) => {
     setBill(prev => {
