@@ -256,5 +256,28 @@ export const api = {
             apiRequest<any>("put", `/Watch/${id}`, dto),
         delete: async (id: string) =>
             apiRequest<void>("delete", `/Watch/${id}`),
+        search: async(searchQuery: string, brand: string, category: string) => {
+            const body: any = {};
+            if (searchQuery) body.SearchQuery = searchQuery;
+            if (brand && brand !== "All brands") body.BrandName = brand;
+            if (category && category !== "All") body.Category = category;
+            
+            return apiRequest<any[]>("post", `/Watch/search`, body);
+        },
+    },
+
+    analytics: {
+        getTotalUnits: async()=>
+            apiRequest<number>("get",`/Analytics/total-units`),
+        getTotalModels: async()=>
+            apiRequest<number>("get",`/Analytics/total-models`),
+        getLowStockModels: async()=>
+            apiRequest<any[]>("get",`/Analytics/low-stock-models`),
+        getTotalStockValue: async()=>
+            apiRequest<number>("get",`/Analytics/total-stock-value`),
+        getTodayRevenue: async(date: string | Date) => {
+            const dateStr = date instanceof Date ? date.toISOString() : date;
+            return apiRequest<number>("get", `/Analytics/today-revenue${qs({ date: dateStr })}`);
+        }
     },
 };

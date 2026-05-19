@@ -1,33 +1,33 @@
 import { useEffect, useState } from "react";
 import { api } from "@/services/api";
-import type { WatchModel } from "@/models/watch";
+import { Model } from "@/models/model";
 
-export const useWatches = () => {
-  const [watches, setWatches] = useState<WatchModel[]>([]);
+export const useModels = () => {
+  const [models, setModels] = useState<Model[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchWatches = async () => {
+    const fetchModels = async () => {
       setLoading(true);
 
       try {
-        const res = await api.watches.getAll();
+        const res = await api.models.getActive();
         console.log(res);
-        setWatches(res);
+        setModels(res);
       } catch (err: any) {
-        setError(err.message || "Failed to fetch watches");
+        setError(err.message || "Failed to fetch models");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchWatches();
+    fetchModels();
   }, []);
 
   return {
-    watches,
-    loading,
+    models,
+    loading,  
     error,
   };
-};
+}
