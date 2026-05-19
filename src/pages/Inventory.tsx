@@ -115,16 +115,6 @@ const Inventory = () => {
               </tr>
             </thead>
             <tbody>
-              {list.map(w => {
-                // const low = w.stock <= 5;
-                return (
-                  <tr key={w.id} className="border-t border-border/60 hover:bg-primary-soft/40 transition-colors">
-                    <td className="py-3">
-                      <div className="flex items-center gap-3">
-                        <img src={w.imageryUrl} alt={w.modelName} loading="lazy" className="h-11 w-11 rounded-xl object-cover" />
-                        <div>
-                          <p className="font-semibold">{w.modelName}</p>
-                          <p className="text-[11px] text-muted-foreground">{w.modelNo} · {w.color}</p>
               {groupItems.map(group => {
                 if (group.type === "watch") {
                   const w = group.item;
