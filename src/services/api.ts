@@ -280,4 +280,4 @@ export const api = {
             return apiRequest<number>("get", `/Analytics/today-revenue${qs({ date: dateStr })}`);
         }
     },
-}
+};
