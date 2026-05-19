@@ -29,6 +29,5 @@ export const useWatches = () => {
     watches,
     loading,
     error,
-    setWatches,
   };
 };

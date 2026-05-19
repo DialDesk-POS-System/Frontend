@@ -256,8 +256,14 @@ export const api = {
             apiRequest<any>("put", `/Watch/${id}`, dto),
         delete: async (id: string) =>
             apiRequest<void>("delete", `/Watch/${id}`),
-        search: async(filter:any)=>
-            apiRequest<any[]>("get",`/Watch/search${qs(filter)}`),
+        search: async(searchQuery: string, brand: string, category: string) => {
+            const body: any = {};
+            if (searchQuery) body.SearchQuery = searchQuery;
+            if (brand && brand !== "All brands") body.BrandName = brand;
+            if (category && category !== "All") body.Category = category;
+            
+            return apiRequest<any[]>("post", `/Watch/search`, body);
+        },
     },
 
     analytics: {
@@ -274,4 +280,4 @@ export const api = {
             return apiRequest<number>("get", `/Analytics/today-revenue${qs({ date: dateStr })}`);
         }
     },
-};
+}
