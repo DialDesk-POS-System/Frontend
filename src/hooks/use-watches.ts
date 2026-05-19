@@ -14,7 +14,7 @@ export const useWatches = () => {
       try {
         const res = await api.watches.getAll();
         console.log(res);
-        setWatches(res);
+        setWatches(res.items);
       } catch (err: any) {
         setError(err.message || "Failed to fetch watches");
       } finally {

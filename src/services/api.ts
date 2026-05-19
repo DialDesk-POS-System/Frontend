@@ -237,7 +237,7 @@ export const api = {
 
     watches: {
         getAll:    async () =>
-            apiRequest<any[]>("get", `/Watch`),
+            apiRequest<{ items: any[] }>("get", `/Watch`),
         getById:   async (id: string) =>
             apiRequest<any>("get", `/Watch/${id}`),
         getByModel: async (modelId: number) =>
