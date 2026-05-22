@@ -241,8 +241,8 @@ export const api = {
 
 
     watches: {
-        getAll:    async () =>
-            apiRequest<{ items: any[] }>("get", `/Watch`),
+        getAll:    async (page: number = 1, pageSize: number = 5) =>
+            apiRequest<any>("get", `/Watch${qs({ page, pageSize })}`),
         getById:   async (id: string) =>
             apiRequest<any>("get", `/Watch/${id}`),
         getByModel: async (modelId: number) =>
@@ -261,13 +261,13 @@ export const api = {
             apiRequest<any>("put", `/Watch/${id}`, dto),
         delete: async (id: string) =>
             apiRequest<void>("delete", `/Watch/${id}`),
-        search: async(searchQuery: string, brand: string, category: string) => {
+        search: async(searchQuery: string, brand: string, category: string, page: number = 1, pageSize: number = 5) => {
             const body: any = {};
             if (searchQuery) body.SearchQuery = searchQuery;
             if (brand && brand !== "All brands") body.BrandName = brand;
             if (category && category !== "All") body.Category = category;
             
-            return apiRequest<any[]>("post", `/Watch/search`, body);
+            return apiRequest<any>("post", `/Watch/search${qs({ page, pageSize })}`, body);
         },
     },
 

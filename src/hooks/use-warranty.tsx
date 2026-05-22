@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "@/services/api";
+import { PaginatedResponse } from "@/services/pagination";
 
 export type WarrantyStatus = "Active" | "Expiring" | "Expired" | "Claimed";
 
@@ -13,14 +14,6 @@ export interface WarrantyModel {
     claimDate?: string | null;
 
 
-}
-
-export interface PaginatedWarranty {
-    items: WarrantyModel[];
-    totalCount: number;
-    pageNumber: number;
-    pageSize: number;
-    totalPages: number;
 }
 
 export const useWarrenty = () =>{
@@ -39,7 +32,7 @@ export const useWarrenty = () =>{
             setLoading(true);
 
             try {
-                const res:PaginatedWarranty  = await api.warranty.getPaginated(page,pageSize);
+                const res:PaginatedResponse<WarrantyModel>  = await api.warranty.getPaginated(page,pageSize);
                 setWarranties(res.items);
                 console.log(res)
                 setTotalPages(res.totalPages);
@@ -57,11 +50,6 @@ export const useWarrenty = () =>{
         
     },[page]);
 
-    const goToPage = (p: number) => {
-                if (p < 1 || p > totalPages) return;
-                setPage(p);
-    };
-
     return {
         warranties,
         loading,
@@ -70,6 +58,6 @@ export const useWarrenty = () =>{
         pageSize,
         totalPages,
         totalCount,
-        goToPage,
+        setPage
     };
 }

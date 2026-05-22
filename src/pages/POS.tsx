@@ -1,7 +1,30 @@
 import { useEffect, useMemo, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { BillItem } from "@/data/mock";
-import { Search, SlidersHorizontal, Plus, Minus, Trash2, CreditCard, Banknote, QrCode, Printer, Send, Watch, Clock, Gem, Activity, Heart, LayoutGrid, Edit3, X, Rss } from "lucide-react";
+import {
+  Search,
+  SlidersHorizontal,
+  Plus,
+  Minus,
+  Trash2,
+  CreditCard,
+  Banknote,
+  QrCode,
+  Printer,
+  Send,
+  Watch,
+  Clock,
+  Gem,
+  Activity,
+  Heart,
+  LayoutGrid,
+  Edit3,
+  X,
+  Rss,
+  ChevronLeft,
+  ChevronRight,
+  type LucideIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { api } from "@/services/api";
@@ -11,8 +34,16 @@ import { useWatches } from "@/hooks/use-watches";
 import { useBrands } from "@/hooks/use-brands";
 import { useModels } from "@/hooks/use-models";
 import { useSearch } from "@/hooks/use-search";
+import { goToPage, pageNumbers } from "@/services/pagination";
 
-const iconMap: Record<string, any> = { grid: LayoutGrid, watch: Watch, clock: Clock, gem: Gem, activity: Activity, heart: Heart };
+const iconMap: Record<string, LucideIcon> = {
+  grid: LayoutGrid,
+  watch: Watch,
+  clock: Clock,
+  gem: Gem,
+  activity: Activity,
+  heart: Heart,
+};
 
 const POS = () => {
   const [activeCat, setActiveCat] = useState<string>("All");
@@ -21,64 +52,93 @@ const POS = () => {
   const [bill, setBill] = useState<BillItem[]>([]);
   const [discountPct, setDiscountPct] = useState(0);
 
-  const [selectedModelGroup, setSelectedModelGroup] = useState<WatchModel[] | null>(null);
-  const [popupFilters, setPopupFilters] = useState({ serialNo: '', color: '', strapMaterial: '', category: '' });
-  
-  const { 
-    watches, 
-    loading: watchesLoading, 
-    error: watchesError, 
-  } = useWatches();
-
-  const { 
-    models, 
-    loading: modelsLoading, 
-    error: modelsError, 
-  } = useModels();
+  const [selectedModelGroup, setSelectedModelGroup] = useState<
+    WatchModel[] | null
+  >(null);
+  const [popupFilters, setPopupFilters] = useState({
+    serialNo: "",
+    color: "",
+    strapMaterial: "",
+    category: "",
+  });
 
   const {
-    brands,
-    loading: brandsLoading,
-    error: brandsError,
-  } = useBrands();
-  
+    watches,
+    loading: watchesLoading,
+    error: watchesError,
+  } = useWatches();
+
+  const { models, loading: modelsLoading, error: modelsError } = useModels();
+
+  const { brands, loading: brandsLoading, error: brandsError } = useBrands();
+
   const {
     groupItems,
     loading: searchLoading,
     error: searchError,
+    page,
+    pageSize,
+    totalPages,
+    totalCount,
+    setPage,
   } = useSearch(query, brand, activeCat);
 
   const addToBill = (w: WatchModel) => {
-    setBill(prev => {
-      const ex = prev.find(b => b.watch.id === w.id);
-      if (ex) return prev.map(b => b.watch.id === w.id ? { ...b, qty: b.qty + 1 } : b);
+    setBill((prev) => {
+      const ex = prev.find((b) => b.watch.id === w.id);
+      if (ex)
+        return prev.map((b) =>
+          b.watch.id === w.id ? { ...b, qty: b.qty + 1 } : b,
+        );
       return [...prev, { watch: w, qty: 1 }];
     });
     toast.success(`${w.modelName} added`);
   };
   const updateQty = (id: string, delta: number) =>
-    setBill(prev => prev.flatMap(b => b.watch.id === id ? (b.qty + delta <= 0 ? [] : [{ ...b, qty: b.qty + delta }]) : [b]));
-  const remove = (id: string) => setBill(prev => prev.filter(b => b.watch.id !== id));
+    setBill((prev) =>
+      prev.flatMap((b) =>
+        b.watch.id === id
+          ? b.qty + delta <= 0
+            ? []
+            : [{ ...b, qty: b.qty + delta }]
+          : [b],
+      ),
+    );
+  const remove = (id: string) =>
+    setBill((prev) => prev.filter((b) => b.watch.id !== id));
 
   const subTotal = bill.reduce((s, b) => s + b.watch.sellingPrice * b.qty, 0);
   const discount = subTotal * (discountPct / 100);
   const tax = (subTotal - discount) * 0.05;
   const total = subTotal - discount + tax;
 
+  const pages = useMemo(
+    () => pageNumbers(page, totalPages),
+    [page, totalPages],
+  );
+
   const handlePay = (method: string) => {
     if (bill.length === 0) return toast.error("Bill is empty");
     const inv = `INV-2025-${String(Math.floor(Math.random() * 900) + 143).padStart(5, "0")}`;
-    toast.success(`Payment confirmed (${method})`, { description: `Invoice ${inv} · $${total.toFixed(2)}` });
+    toast.success(`Payment confirmed (${method})`, {
+      description: `Invoice ${inv} · $${total.toFixed(2)}`,
+    });
     setBill([]);
   };
 
   const popupFilteredItems = useMemo(() => {
     if (!selectedModelGroup) return [];
-    return selectedModelGroup.filter(w => 
-      (popupFilters.serialNo === "" || w.serialNo?.toLowerCase().includes(popupFilters.serialNo.toLowerCase())) &&
-      (popupFilters.color === "" || w.color === popupFilters.color) &&
-      (popupFilters.strapMaterial === "" || w.strapMaterial === popupFilters.strapMaterial) &&
-      (popupFilters.category === "" || w.category?.toString() === popupFilters.category)
+    return selectedModelGroup.filter(
+      (w) =>
+        (popupFilters.serialNo === "" ||
+          w.serialNo
+            ?.toLowerCase()
+            .includes(popupFilters.serialNo.toLowerCase())) &&
+        (popupFilters.color === "" || w.color === popupFilters.color) &&
+        (popupFilters.strapMaterial === "" ||
+          w.strapMaterial === popupFilters.strapMaterial) &&
+        (popupFilters.category === "" ||
+          w.category?.toString() === popupFilters.category),
     );
   }, [selectedModelGroup, popupFilters]);
 
@@ -86,281 +146,516 @@ const POS = () => {
     <>
       <AppLayout>
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_400px] gap-4">
-        {/* Left: catalogue */}
-        <section>
-          <div className="flex items-center gap-3 mb-5">
-            <div className="glass rounded-2xl flex items-center gap-2 px-4 h-12 flex-1">
-              <Search className="h-4 w-4 text-muted-foreground" />
-              <input
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                placeholder="Search watch model, brand, serial…"
-                className="bg-transparent outline-none text-sm flex-1 placeholder:text-muted-foreground"
-              />
+          {/* Left: catalogue */}
+          <section>
+            <div className="flex items-center gap-3 mb-5">
+              <div className="glass rounded-2xl flex items-center gap-2 px-4 h-12 flex-1">
+                <Search className="h-4 w-4 text-muted-foreground" />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search watch model, brand, serial…"
+                  className="bg-transparent outline-none text-sm flex-1 placeholder:text-muted-foreground"
+                />
+              </div>
+              <select
+                value={brand}
+                onChange={(e) => setBrand(e.target.value)}
+                className="glass rounded-2xl h-12 px-4 text-sm font-medium outline-none cursor-pointer"
+              >
+                <option value="All brands">All brands</option>
+                {brands.map((b) => (
+                  <option key={b} value={b}>
+                    {b}
+                  </option>
+                ))}
+              </select>
+              <button className="glass rounded-2xl h-12 w-12 grid place-items-center hover:shadow-glow transition-shadow">
+                <SlidersHorizontal className="h-4 w-4" />
+              </button>
             </div>
-            <select
-              value={brand}
-              onChange={e => setBrand(e.target.value)}
-              className="glass rounded-2xl h-12 px-4 text-sm font-medium outline-none cursor-pointer"
-            >
-              <option value="All brands">All brands</option>
-              {brands.map(b => <option key={b} value={b}>{b}</option>)}
-            </select>
-            <button className="glass rounded-2xl h-12 w-12 grid place-items-center hover:shadow-glow transition-shadow">
-              <SlidersHorizontal className="h-4 w-4" />
-            </button>
-          </div>
 
-          {/* Categories */}
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin -mx-1 px-1">
-            {categories.map(c => {
-              const Icon = iconMap[c.icon];
-              const active = activeCat === c.key;
-              return (
-                <button
-                  key={c.key}
-                  onClick={() => setActiveCat(c.key)}
-                  className={cn(
-                    "shrink-0 rounded-2xl p-4 w-[130px] text-left transition-all duration-300",
-                    active ? "gradient-primary text-primary-foreground shadow-glow scale-[1.02]" : "glass hover:shadow-soft"
-                  )}
-                >
-                  <div className={cn("h-10 w-10 rounded-xl grid place-items-center mb-3", active ? "bg-white/20" : "bg-primary-soft text-primary")}>
-                    <Icon className="h-5 w-5" />
+            {/* Categories */}
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin -mx-1 px-1">
+              {categories.map((c) => {
+                const Icon = iconMap[c.icon];
+                const active = activeCat === c.key;
+                return (
+                  <button
+                    key={c.key}
+                    onClick={() => setActiveCat(c.key)}
+                    className={cn(
+                      "shrink-0 rounded-2xl p-4 w-[130px] text-left transition-all duration-300",
+                      active
+                        ? "gradient-primary text-primary-foreground shadow-glow scale-[1.02]"
+                        : "glass hover:shadow-soft",
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "h-10 w-10 rounded-xl grid place-items-center mb-3",
+                        active ? "bg-white/20" : "bg-primary-soft text-primary",
+                      )}
+                    >
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <p className="font-semibold text-sm">{c.label}</p>
+                    {/* <p className={cn("text-[11px] mt-0.5", active ? "text-primary-foreground/80" : "text-muted-foreground")}>{c.count} items</p> */}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Product grid */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-5">
+              {searchLoading && (
+                <div className="col-span-full py-8 text-center text-sm text-muted-foreground">
+                  Loading watches...
+                </div>
+              )}
+              {searchError && (
+                <div className="col-span-full py-8 text-center text-sm text-destructive">
+                  {searchError}
+                </div>
+              )}
+
+              {!searchLoading &&
+                !searchError &&
+                groupItems.map((group) => {
+                  if (group.type === "watch") {
+                    const w = group.item;
+                    return (
+                      <article
+                        key={w.id}
+                        className="glass rounded-3xl p-3 group hover:shadow-glow transition-all duration-500 animate-scale-in"
+                      >
+                        <div className="relative rounded-2xl overflow-hidden aspect-[4/3] bg-secondary">
+                          <img
+                            src={w.imageryUrl}
+                            alt={w.modelName}
+                            loading="lazy"
+                            className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-700"
+                          />
+                          <span className="absolute top-2 right-2 text-[10px] font-semibold px-2 py-1 rounded-lg glass-strong">
+                            {!w.isSold ? "Available" : "Sold"}
+                          </span>
+                        </div>
+                        <div className="px-1.5 pt-3 pb-1">
+                          <p className="text-[11px] text-muted-foreground font-medium">
+                            {w.brandName} · {w.modelName}
+                          </p>
+                          <h4 className="font-semibold text-sm mt-0.5 line-clamp-1">
+                            {w.modelNo}
+                          </h4>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            SN: {w.serialNo}
+                          </p>
+                          <div className="flex items-center justify-between mt-3">
+                            <span className="font-display font-bold text-primary">
+                              ${w.sellingPrice?.toFixed(2)}
+                            </span>
+                            <button
+                              onClick={() => addToBill(w)}
+                              className="gradient-primary text-primary-foreground rounded-xl h-9 px-3 text-xs font-semibold shadow-glow hover:scale-105 transition-transform flex items-center gap-1"
+                            >
+                              <Plus className="h-3.5 w-3.5" /> Add
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  } else {
+                    const firstWatch = group.firstItem;
+                    const actualModel = models.find(
+                      (mod) => mod.id === firstWatch.modelId,
+                    );
+                    const imageUrl =
+                      actualModel?.imageryUrl || firstWatch.imageryUrl;
+
+                    return (
+                      <article
+                        key={`model-${firstWatch.modelId}`}
+                        className="glass rounded-3xl p-3 border border-primary/20 group hover:shadow-glow transition-all duration-500 animate-scale-in"
+                      >
+                        <div className="relative rounded-2xl overflow-hidden aspect-[4/3] bg-secondary">
+                          <img
+                            src={imageUrl}
+                            alt={firstWatch.modelName}
+                            loading="lazy"
+                            className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-700"
+                          />
+                          <span className="absolute top-2 right-2 text-[10px] font-semibold px-2 py-1 rounded-lg bg-primary text-primary-foreground shadow-glow">
+                            {group.items.length} in stock
+                          </span>
+                        </div>
+                        <div className="px-1.5 pt-3 pb-1">
+                          <p className="text-[11px] text-muted-foreground font-medium">
+                            {firstWatch.brandName} · {firstWatch.modelName}
+                          </p>
+                          <h4 className="font-semibold text-sm mt-0.5 line-clamp-1">
+                            {firstWatch.modelNo}
+                          </h4>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            Select a variant to add
+                          </p>
+                          <div className="flex items-center justify-between mt-3">
+                            <span className="font-display font-bold text-primary">
+                              Models
+                            </span>
+                            <button
+                              onClick={() => {
+                                setSelectedModelGroup(group.items);
+                                setPopupFilters({
+                                  serialNo: "",
+                                  color: "",
+                                  strapMaterial: "",
+                                  category: "",
+                                });
+                              }}
+                              className="glass-strong text-foreground rounded-xl h-9 px-3 text-xs font-semibold shadow-soft hover:bg-primary hover:text-primary-foreground transition-all flex items-center gap-1"
+                            >
+                              Select Watch
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  }
+                })}
+              {!searchLoading && !searchError && groupItems.length === 0 && (
+                <div className="col-span-full glass rounded-3xl p-12 text-center text-muted-foreground">
+                  No watches match your filters.
+                </div>
+              )}
+
+              {!searchLoading && !searchError && totalPages > 1 && (
+                <div className="col-span-full flex items-center justify-between mt-5 pt-4 border-t border-border/50">
+                  {/* Result count */}
+                  <p className="text-xs text-muted-foreground">
+                    Showing {(page - 1) * pageSize + 1}–
+                    {Math.min(page * pageSize, totalCount)} of {totalCount}
+                  </p>
+
+                  {/* Page buttons */}
+                  <div className="flex items-center gap-1">
+                    {/* Prev */}
+                    <button
+                      onClick={() => goToPage(page - 1, setPage, totalPages)}
+                      disabled={page === 1}
+                      className="h-8 w-8 rounded-xl glass-soft flex items-center justify-center disabled:opacity-30"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+
+                    {/* Page numbers */}
+                    {pages.map((p, idx) => {
+                      // Show ellipsis when there's a gap
+                      const prev = pages[idx - 1];
+                      const showEllipsis = prev && p - prev > 1;
+                      return (
+                        <div key={p} className="flex items-center gap-1">
+                          {showEllipsis && (
+                            <span className="text-xs text-muted-foreground px-1">
+                              ...
+                            </span>
+                          )}
+                          <button
+                            onClick={() => goToPage(p, setPage, totalPages)}
+                            className={`h-8 w-8 rounded-xl text-xs font-semibold flex items-center justify-center transition-all
+                                                    ${
+                                                      p === page
+                                                        ? "gradient-primary text-primary-foreground shadow-glow"
+                                                        : "glass-soft hover:shadow-glow"
+                                                    }`}
+                          >
+                            {p}
+                          </button>
+                        </div>
+                      );
+                    })}
+
+                    {/* Next */}
+                    <button
+                      onClick={() => goToPage(page + 1, setPage, totalPages)}
+                      disabled={page === totalPages}
+                      className="h-8 w-8 rounded-xl glass-soft flex items-center justify-center disabled:opacity-30"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
                   </div>
-                  <p className="font-semibold text-sm">{c.label}</p>
-                  {/* <p className={cn("text-[11px] mt-0.5", active ? "text-primary-foreground/80" : "text-muted-foreground")}>{c.count} items</p> */}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Product grid */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-5">
-            {groupItems.map(group => {
-              if (group.type === "watch") {
-                const w = group.item;
-                return (
-                  <article key={w.id} className="glass rounded-3xl p-3 group hover:shadow-glow transition-all duration-500 animate-scale-in">
-                    <div className="relative rounded-2xl overflow-hidden aspect-[4/3] bg-secondary">
-                      <img src={w.imageryUrl} alt={w.modelName} loading="lazy" className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                      <span className="absolute top-2 right-2 text-[10px] font-semibold px-2 py-1 rounded-lg glass-strong">{!w.isSold ? "Available" : "Sold"}</span>
-                    </div>
-                    <div className="px-1.5 pt-3 pb-1">
-                      <p className="text-[11px] text-muted-foreground font-medium">{w.brandName} · {w.modelName}</p>
-                      <h4 className="font-semibold text-sm mt-0.5 line-clamp-1">{w.modelNo}</h4>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">SN: {w.serialNo}</p>
-                      <div className="flex items-center justify-between mt-3">
-                        <span className="font-display font-bold text-primary">${w.sellingPrice?.toFixed(2)}</span>
-                        <button
-                          onClick={() => addToBill(w)}
-                          className="gradient-primary text-primary-foreground rounded-xl h-9 px-3 text-xs font-semibold shadow-glow hover:scale-105 transition-transform flex items-center gap-1"
-                        >
-                          <Plus className="h-3.5 w-3.5" /> Add
-                        </button>
-                      </div>
-                    </div>
-                  </article>
-                );
-              } else {
-                const firstWatch = group.firstItem;
-                const actualModel = models.find(mod => mod.id === firstWatch.modelId);
-                const imageUrl = actualModel?.imageryUrl || firstWatch.imageryUrl;
-
-                return (
-                  <article key={`model-${firstWatch.modelId}`} className="glass rounded-3xl p-3 border border-primary/20 group hover:shadow-glow transition-all duration-500 animate-scale-in">
-                    <div className="relative rounded-2xl overflow-hidden aspect-[4/3] bg-secondary">
-                      <img src={imageUrl} alt={firstWatch.modelName} loading="lazy" className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                      <span className="absolute top-2 right-2 text-[10px] font-semibold px-2 py-1 rounded-lg bg-primary text-primary-foreground shadow-glow">{group.items.length} in stock</span>
-                    </div>
-                    <div className="px-1.5 pt-3 pb-1">
-                      <p className="text-[11px] text-muted-foreground font-medium">{firstWatch.brandName} · {firstWatch.modelName}</p>
-                      <h4 className="font-semibold text-sm mt-0.5 line-clamp-1">{firstWatch.modelNo}</h4>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">Select a variant to add</p>
-                      <div className="flex items-center justify-between mt-3">
-                        <span className="font-display font-bold text-primary">Models</span>
-                        <button
-                          onClick={() => {
-                            setSelectedModelGroup(group.items);
-                            setPopupFilters({ serialNo: '', color: '', strapMaterial: '', category: '' });
-                          }}
-                          className="glass-strong text-foreground rounded-xl h-9 px-3 text-xs font-semibold shadow-soft hover:bg-primary hover:text-primary-foreground transition-all flex items-center gap-1"
-                        >
-                          Select Watch
-                        </button>
-                      </div>
-                    </div>
-                  </article>
-                );
-              }
-            })}
-            {groupItems.length === 0 && (
-              <div className="col-span-full glass rounded-3xl p-12 text-center text-muted-foreground">No watches match your filters.</div>
-            )}
-          </div>
-        </section>
-
-        {/* Right: order panel */}
-        <aside className="glass-strong rounded-3xl p-5 flex flex-col h-fit xl:sticky xl:top-3 xl:max-h-[calc(100vh-1.5rem)]">
-          <div className="flex items-start justify-between">
-            <div>
-              <h2 className="font-display text-xl font-bold">Bill #{`DRAFT-${bill.length || 0}`}</h2>
-              <p className="text-xs text-muted-foreground">Floyd Miles · Counter 1</p>
+                </div>
+              )}
             </div>
-            <button className="h-9 w-9 rounded-xl glass-soft grid place-items-center hover:shadow-soft">
-              <Edit3 className="h-3.5 w-3.5" />
-            </button>
-          </div>
+          </section>
 
-          <div className="mt-4 space-y-2.5 overflow-y-auto scrollbar-thin pr-1 flex-1 min-h-[120px] max-h-[340px]">
-            {bill.length === 0 && (
-              <div className="text-center text-sm text-muted-foreground py-10">Cart is empty. Add a watch to start.</div>
-            )}
-            {bill.map(b => (
-              <div key={b.watch.id} className="glass-soft rounded-2xl p-2.5 flex items-center gap-3">
-                <img src={b.watch.imageryUrl} alt={b.watch.modelName} loading="lazy" className="h-12 w-12 rounded-xl object-cover" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate">{b.watch.modelName}</p>
-                  <p className="text-[11px] text-muted-foreground truncate">{b.watch.modelName} · {b.watch.color}</p>
-                  <div className="flex items-center justify-between mt-1.5">
-                    <p className="text-sm font-bold text-primary">${(b.watch.sellingPrice * b.qty).toFixed(2)}</p>
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => updateQty(b.watch.id, -1)} className="h-6 w-6 rounded-md bg-primary-soft text-primary grid place-items-center hover:scale-110 transition-transform"><Minus className="h-3 w-3" /></button>
-                      <span className="text-xs font-bold w-4 text-center">{b.qty}</span>
-                      <button onClick={() => updateQty(b.watch.id, 1)} className="h-6 w-6 rounded-md gradient-primary text-primary-foreground grid place-items-center hover:scale-110 transition-transform"><Plus className="h-3 w-3" /></button>
-                      <button onClick={() => remove(b.watch.id)} className="h-6 w-6 rounded-md text-muted-foreground hover:text-destructive grid place-items-center"><Trash2 className="h-3 w-3" /></button>
+          {/* Right: order panel */}
+          <aside className="glass-strong rounded-3xl p-5 flex flex-col h-fit xl:sticky xl:top-3 xl:max-h-[calc(100vh-1.5rem)]">
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="font-display text-xl font-bold">
+                  Bill #{`DRAFT-${bill.length || 0}`}
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  Floyd Miles · Counter 1
+                </p>
+              </div>
+              <button className="h-9 w-9 rounded-xl glass-soft grid place-items-center hover:shadow-soft">
+                <Edit3 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-2.5 overflow-y-auto scrollbar-thin pr-1 flex-1 min-h-[120px] max-h-[340px]">
+              {bill.length === 0 && (
+                <div className="text-center text-sm text-muted-foreground py-10">
+                  Cart is empty. Add a watch to start.
+                </div>
+              )}
+              {bill.map((b) => (
+                <div
+                  key={b.watch.id}
+                  className="glass-soft rounded-2xl p-2.5 flex items-center gap-3"
+                >
+                  <img
+                    src={b.watch.imageryUrl}
+                    alt={b.watch.modelName}
+                    loading="lazy"
+                    className="h-12 w-12 rounded-xl object-cover"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate">
+                      {b.watch.modelName}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      {b.watch.modelName} · {b.watch.color}
+                    </p>
+                    <div className="flex items-center justify-between mt-1.5">
+                      <p className="text-sm font-bold text-primary">
+                        ${(b.watch.sellingPrice * b.qty).toFixed(2)}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => updateQty(b.watch.id, -1)}
+                          className="h-6 w-6 rounded-md bg-primary-soft text-primary grid place-items-center hover:scale-110 transition-transform"
+                        >
+                          <Minus className="h-3 w-3" />
+                        </button>
+                        <span className="text-xs font-bold w-4 text-center">
+                          {b.qty}
+                        </span>
+                        <button
+                          onClick={() => updateQty(b.watch.id, 1)}
+                          className="h-6 w-6 rounded-md gradient-primary text-primary-foreground grid place-items-center hover:scale-110 transition-transform"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </button>
+                        <button
+                          onClick={() => remove(b.watch.id)}
+                          className="h-6 w-6 rounded-md text-muted-foreground hover:text-destructive grid place-items-center"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
+              ))}
+            </div>
+
+            <div className="glass-soft rounded-2xl p-4 mt-4 space-y-2 text-sm">
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span>Subtotal</span>
+                <span>${subTotal.toFixed(2)}</span>
               </div>
-            ))}
-          </div>
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span className="flex items-center gap-2">
+                  Discount
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={discountPct}
+                    onChange={(e) =>
+                      setDiscountPct(
+                        Math.min(100, Math.max(0, +e.target.value || 0)),
+                      )
+                    }
+                    className="w-12 h-6 rounded-md bg-background border border-border px-1.5 text-xs outline-none"
+                  />
+                  %
+                </span>
+                <span>−${discount.toFixed(2)}</span>
+              </div>
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span>Tax 5%</span>
+                <span>${tax.toFixed(2)}</span>
+              </div>
+              <div className="border-t border-border/60 my-2" />
+              <div className="flex items-center justify-between">
+                <span className="font-display font-bold">Total</span>
+                <span className="font-display font-bold text-xl text-primary">
+                  ${total.toFixed(2)}
+                </span>
+              </div>
+            </div>
 
-          <div className="glass-soft rounded-2xl p-4 mt-4 space-y-2 text-sm">
-            <div className="flex items-center justify-between text-muted-foreground">
-              <span>Subtotal</span><span>${subTotal.toFixed(2)}</span>
+            <div className="grid grid-cols-3 gap-2 mt-4">
+              {[
+                { label: "Cash", icon: Banknote },
+                { label: "Card", icon: CreditCard },
+                { label: "QR", icon: QrCode },
+              ].map((p) => (
+                <button
+                  key={p.label}
+                  onClick={() => handlePay(p.label)}
+                  className="glass-soft rounded-2xl py-3 flex flex-col items-center gap-1.5 hover:shadow-glow hover:bg-primary-soft transition-all"
+                >
+                  <p.icon className="h-4 w-4" />
+                  <span className="text-[11px] font-semibold">{p.label}</span>
+                </button>
+              ))}
             </div>
-            <div className="flex items-center justify-between text-muted-foreground">
-              <span className="flex items-center gap-2">
-                Discount
-                <input type="number" min={0} max={100} value={discountPct} onChange={e => setDiscountPct(Math.min(100, Math.max(0, +e.target.value || 0)))} className="w-12 h-6 rounded-md bg-background border border-border px-1.5 text-xs outline-none" />%
-              </span>
-              <span>−${discount.toFixed(2)}</span>
-            </div>
-            <div className="flex items-center justify-between text-muted-foreground">
-              <span>Tax 5%</span><span>${tax.toFixed(2)}</span>
-            </div>
-            <div className="border-t border-border/60 my-2" />
-            <div className="flex items-center justify-between">
-              <span className="font-display font-bold">Total</span>
-              <span className="font-display font-bold text-xl text-primary">${total.toFixed(2)}</span>
-            </div>
-          </div>
 
-          <div className="grid grid-cols-3 gap-2 mt-4">
-            {[
-              { label: "Cash", icon: Banknote },
-              { label: "Card", icon: CreditCard },
-              { label: "QR", icon: QrCode },
-            ].map(p => (
-              <button key={p.label} onClick={() => handlePay(p.label)} className="glass-soft rounded-2xl py-3 flex flex-col items-center gap-1.5 hover:shadow-glow hover:bg-primary-soft transition-all">
-                <p.icon className="h-4 w-4" />
-                <span className="text-[11px] font-semibold">{p.label}</span>
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              <button className="glass-soft rounded-2xl py-2.5 flex items-center justify-center gap-2 text-xs font-semibold hover:bg-primary-soft transition-all">
+                <Printer className="h-3.5 w-3.5" /> Print
               </button>
-            ))}
-          </div>
+              <button className="glass-soft rounded-2xl py-2.5 flex items-center justify-center gap-2 text-xs font-semibold hover:bg-primary-soft transition-all">
+                <Send className="h-3.5 w-3.5" /> Send PDF
+              </button>
+            </div>
 
-          <div className="grid grid-cols-2 gap-2 mt-2">
-            <button className="glass-soft rounded-2xl py-2.5 flex items-center justify-center gap-2 text-xs font-semibold hover:bg-primary-soft transition-all">
-              <Printer className="h-3.5 w-3.5" /> Print
+            <button
+              onClick={() => handlePay("Multi")}
+              className="mt-3 gradient-primary text-primary-foreground rounded-2xl h-12 font-semibold shadow-glow hover:scale-[1.02] transition-transform"
+            >
+              Place Order · ${total.toFixed(2)}
             </button>
-            <button className="glass-soft rounded-2xl py-2.5 flex items-center justify-center gap-2 text-xs font-semibold hover:bg-primary-soft transition-all">
-              <Send className="h-3.5 w-3.5" /> Send PDF
-            </button>
-          </div>
-
-          <button
-            onClick={() => handlePay("Multi")}
-            className="mt-3 gradient-primary text-primary-foreground rounded-2xl h-12 font-semibold shadow-glow hover:scale-[1.02] transition-transform"
-          >
-            Place Order · ${total.toFixed(2)}
-          </button>
-        </aside>
-      </div>
+          </aside>
+        </div>
       </AppLayout>
 
       {/* Select Watch Modal */}
       {selectedModelGroup && (
-        <div 
+        <div
           className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
           onMouseDown={() => setSelectedModelGroup(null)}
         >
-          <div 
+          <div
             className="glass-strong rounded-3xl w-full max-w-3xl max-h-[80vh] flex flex-col overflow-hidden animate-scale-in shadow-2xl"
-            onMouseDown={e => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
           >
             {/* Header */}
             <div className="p-5 border-b border-border/50 flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-bold font-display">Select Watch Variant</h2>
-                <p className="text-sm text-muted-foreground">{selectedModelGroup[0]?.brandName} · {selectedModelGroup[0]?.modelName}</p>
+                <h2 className="text-xl font-bold font-display">
+                  Select Watch Variant
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {selectedModelGroup[0]?.brandName} ·{" "}
+                  {selectedModelGroup[0]?.modelName}
+                </p>
               </div>
-              <button onClick={() => setSelectedModelGroup(null)} className="h-10 w-10 rounded-full glass flex items-center justify-center hover:bg-destructive/10 hover:text-destructive transition-colors">
+              <button
+                onClick={() => setSelectedModelGroup(null)}
+                className="h-10 w-10 rounded-full glass flex items-center justify-center hover:bg-destructive/10 hover:text-destructive transition-colors"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            
+
             {/* Filters */}
             <div className="p-5 bg-secondary/30 grid grid-cols-2 md:grid-cols-4 gap-3">
-              <input 
-                placeholder="Search Serial No..." 
+              <input
+                placeholder="Search Serial No..."
                 value={popupFilters.serialNo}
-                onChange={e => setPopupFilters(p => ({ ...p, serialNo: e.target.value }))}
+                onChange={(e) =>
+                  setPopupFilters((p) => ({ ...p, serialNo: e.target.value }))
+                }
                 className="h-10 rounded-xl px-3 text-sm outline-none bg-background border border-border"
               />
-              <select 
+              <select
                 value={popupFilters.category}
-                onChange={e => setPopupFilters(p => ({ ...p, category: e.target.value }))}
+                onChange={(e) =>
+                  setPopupFilters((p) => ({ ...p, category: e.target.value }))
+                }
                 className="h-10 rounded-xl px-3 text-sm outline-none bg-background border border-border"
               >
                 <option value="">All Categories</option>
-                {Array.from(new Set(selectedModelGroup.map(w => w.category?.toString()).filter(Boolean))).map(c => (
-                  <option key={c} value={c}>{c}</option>
+                {Array.from(
+                  new Set(
+                    selectedModelGroup
+                      .map((w) => w.category?.toString())
+                      .filter(Boolean),
+                  ),
+                ).map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
                 ))}
               </select>
-              <select 
+              <select
                 value={popupFilters.color}
-                onChange={e => setPopupFilters(p => ({ ...p, color: e.target.value }))}
+                onChange={(e) =>
+                  setPopupFilters((p) => ({ ...p, color: e.target.value }))
+                }
                 className="h-10 rounded-xl px-3 text-sm outline-none bg-background border border-border"
               >
                 <option value="">All Colors</option>
-                {Array.from(new Set(selectedModelGroup.map(w => w.color).filter(Boolean))).map(c => (
-                  <option key={c} value={c}>{c}</option>
+                {Array.from(
+                  new Set(
+                    selectedModelGroup.map((w) => w.color).filter(Boolean),
+                  ),
+                ).map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
                 ))}
               </select>
-              <select 
+              <select
                 value={popupFilters.strapMaterial}
-                onChange={e => setPopupFilters(p => ({ ...p, strapMaterial: e.target.value }))}
+                onChange={(e) =>
+                  setPopupFilters((p) => ({
+                    ...p,
+                    strapMaterial: e.target.value,
+                  }))
+                }
                 className="h-10 rounded-xl px-3 text-sm outline-none bg-background border border-border"
               >
                 <option value="">All Straps</option>
-                {Array.from(new Set(selectedModelGroup.map(w => w.strapMaterial).filter(Boolean))).map(s => (
-                  <option key={s} value={s}>{s}</option>
+                {Array.from(
+                  new Set(
+                    selectedModelGroup
+                      .map((w) => w.strapMaterial)
+                      .filter(Boolean),
+                  ),
+                ).map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
                 ))}
               </select>
             </div>
 
             {/* List */}
             <div className="flex-1 overflow-y-auto p-5 grid grid-cols-1 md:grid-cols-2 gap-3">
-              {popupFilteredItems.map(w => (
-                <div key={w.id} className="glass rounded-2xl p-3 flex items-center justify-between group hover:shadow-soft transition-all">
+              {popupFilteredItems.map((w) => (
+                <div
+                  key={w.id}
+                  className="glass rounded-2xl p-3 flex items-center justify-between group hover:shadow-soft transition-all"
+                >
                   <div>
-                    <p className="font-semibold text-sm">SN: {w.serialNo || "N/A"}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{w.color || "No Color"} · {w.strapMaterial || "No Strap"}</p>
+                    <p className="font-semibold text-sm">
+                      SN: {w.serialNo || "N/A"}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {w.color || "No Color"} · {w.strapMaterial || "No Strap"}
+                    </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="font-bold text-primary">${w.sellingPrice?.toFixed(2)}</span>
-                    <button 
+                    <span className="font-bold text-primary">
+                      ${w.sellingPrice?.toFixed(2)}
+                    </span>
+                    <button
                       onClick={() => {
                         addToBill(w);
                         setSelectedModelGroup(null);
@@ -368,7 +663,9 @@ const POS = () => {
                       disabled={w.isSold}
                       className={cn(
                         "h-8 px-3 rounded-xl text-xs font-semibold transition-all flex items-center gap-1",
-                        w.isSold ? "bg-muted text-muted-foreground cursor-not-allowed" : "gradient-primary text-primary-foreground shadow-glow hover:scale-105"
+                        w.isSold
+                          ? "bg-muted text-muted-foreground cursor-not-allowed"
+                          : "gradient-primary text-primary-foreground shadow-glow hover:scale-105",
                       )}
                     >
                       {w.isSold ? "Sold" : "Add"}
@@ -377,7 +674,9 @@ const POS = () => {
                 </div>
               ))}
               {popupFilteredItems.length === 0 && (
-                <div className="col-span-full py-10 text-center text-muted-foreground text-sm">No variants match these filters.</div>
+                <div className="col-span-full py-10 text-center text-muted-foreground text-sm">
+                  No variants match these filters.
+                </div>
               )}
             </div>
           </div>
