@@ -169,6 +169,7 @@ export const api = {
             apiRequest<any[]>("get", `/Return`),
         getById:       async (id: number) =>
             apiRequest<any>("get", `/Return/${id}`),
+       
         getBySaleItem: async (saleItemId: number) =>
             apiRequest<any>("get", `/Return/sale/${saleItemId}`),
         create:        async (dto: any) =>
@@ -215,6 +216,10 @@ export const api = {
     warranty: {
         getById:        async (id: number) =>
             apiRequest<any>("get", `/Warranty/${id}`),
+        getPaginated: async (page: number = 1, pageSize: number = 5) =>
+        apiRequest<any>("get", `/Warranty${qs({ page, pageSize })}`),
+        getDashboard:       async () =>
+            apiRequest<any>("get", `/Warranty/dashboard`),
         getBySaleItemId: async (saleItemId: number) =>
             apiRequest<any>("get", `/Warranty/sale/${saleItemId}`),
         getByWatchId:   async (watchId: string) =>

@@ -41,6 +41,24 @@ const Batches = () => {
     },
   ]);
 
+  const afterClose = () =>{
+    setShowNew((s)=> !s)
+    setGroup([
+    {
+      modelId: "",
+      importId: "",
+      serialNo: "",
+      color: "",
+      quantity: "",
+      waterResistanceM: "",
+      costPrice: "",
+      sellingPrice: "",
+      strapMaterial: "",
+      imageryUrl: "",
+    },
+  ])
+  }
+
   const [newBatchForm, setNewBatchForm] = useState({
     supplier: "",
     totalItems: "",
@@ -149,7 +167,13 @@ const Batches = () => {
      }
  
      try {
-      createImport(dto)
+      await createImport(dto);
+
+      console.log("Success");
+
+
+
+
       
      } catch (error) {
       console.log(error)
@@ -220,7 +244,7 @@ const Batches = () => {
 
       <div className="flex justify-end mb-4">
         <button
-          onClick={() => setShowNew((s) => !s)}
+          onClick={() => afterClose()}
           className="gradient-primary text-primary-foreground rounded-2xl h-11 px-5 text-sm font-semibold flex items-center gap-2 shadow-glow hover:scale-105 transition-transform"
         >
           <Plus className="h-4 w-4" /> Start new batch
@@ -546,8 +570,9 @@ const Batches = () => {
 
         {/* Batches Grid */}
         {/* ************************** */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {filteredImports.map((b) => (
+        <div className="max-h-96 overflow-y-auto scrollbar-thin">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {filteredImports.map((b) => (
             <div
               key={b.id}
               className="glass-soft rounded-2xl p-5 hover:shadow-glow transition-all duration-500"
@@ -603,6 +628,7 @@ const Batches = () => {
               {/* ***************************** */}
             </div>
           ))}
+          </div>
         </div>
       </div>
 
