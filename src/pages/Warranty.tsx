@@ -11,8 +11,9 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useWarrenty } from "@/hooks/use-warranty";
+import { goToPage, pageNumbers } from "@/services/pagination";
 
 const Warranty = () => {
   const [stats, setStats] = useState({
@@ -47,8 +48,14 @@ const Warranty = () => {
     totalPages,
     totalCount,
     pageSize,
-    goToPage,
+    setPage
   } = useWarrenty();
+
+    const pages = useMemo(
+      () => pageNumbers(page, totalPages),
+      [page, totalPages],
+    );
+  
 
   useEffect(() => {
     const fetchWarrantyStats = async () => {
@@ -87,12 +94,6 @@ const Warranty = () => {
     },
   ];
 
-  const pageNumbers = Array.from(
-    { length: totalPages },
-    (_, i) => i + 1,
-  ).filter(
-    (p) => p === 1 || p === totalPages || (p >= page - 1 && p <= page + 1),
-  );
   return (
     <AppLayout>
       <Topbar
@@ -221,7 +222,7 @@ const Warranty = () => {
               <div className="flex items-center gap-1">
                 {/* Prev */}
                 <button
-                  onClick={() => goToPage(page - 1)}
+                  onClick={() => goToPage(page - 1, setPage, totalPages)}
                   disabled={page === 1}
                   className="h-8 w-8 rounded-xl glass-soft flex items-center justify-center disabled:opacity-30"
                 >
@@ -229,9 +230,9 @@ const Warranty = () => {
                 </button>
 
                 {/* Page numbers */}
-                {pageNumbers.map((p, idx) => {
+                {pages.map((p, idx) => {
                   // Show ellipsis when there's a gap
-                  const prev = pageNumbers[idx - 1];
+                  const prev = pages[idx - 1];
                   const showEllipsis = prev && p - prev > 1;
                   return (
                     <div key={p} className="flex items-center gap-1">
@@ -241,7 +242,7 @@ const Warranty = () => {
                         </span>
                       )}
                       <button
-                        onClick={() => goToPage(p)}
+                        onClick={() => goToPage(p, setPage, totalPages )}
                         className={`h-8 w-8 rounded-xl text-xs font-semibold flex items-center justify-center transition-all
                                                 ${
                                                   p === page
@@ -257,7 +258,7 @@ const Warranty = () => {
 
                 {/* Next */}
                 <button
-                  onClick={() => goToPage(page + 1)}
+                  onClick={() => goToPage(page + 1, setPage, totalPages)}
                   disabled={page === totalPages}
                   className="h-8 w-8 rounded-xl glass-soft flex items-center justify-center disabled:opacity-30"
                 >

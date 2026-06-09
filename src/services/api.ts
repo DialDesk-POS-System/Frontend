@@ -195,6 +195,8 @@ export const api = {
             apiRequest<any>("put", `/Sale/${id}`, dto),
         delete:       async (id: number) =>
             apiRequest<void>("delete", `/Sale/${id}`),
+        sendEmail:    async (saleId: number) =>
+            apiRequest<any>("post", `/Sale/${saleId}/send-email`),
     },
 
     saleItems: {
@@ -241,8 +243,8 @@ export const api = {
 
 
     watches: {
-        getAll:    async () =>
-            apiRequest<{ items: any[] }>("get", `/Watch`),
+        getAll:    async (page: number = 1, pageSize: number = 5) =>
+            apiRequest<any>("get", `/Watch${qs({ page, pageSize })}`),
         getById:   async (id: string) =>
             apiRequest<any>("get", `/Watch/${id}`),
         getByModel: async (modelId: number) =>
@@ -261,13 +263,31 @@ export const api = {
             apiRequest<any>("put", `/Watch/${id}`, dto),
         delete: async (id: string) =>
             apiRequest<void>("delete", `/Watch/${id}`),
-        search: async(searchQuery: string, brand: string, category: string) => {
+        search: async(
+            searchQuery: string,
+            brand: string,
+            category: string,
+            page: number = 1,
+            pageSize: number = 5,
+            extraFilters?: {
+                modelName?: string;
+                modelNo?: string;
+                serialNo?: string;
+                color?: string;
+                strapMaterial?: string;
+            }
+        ) => {
             const body: any = {};
             if (searchQuery) body.SearchQuery = searchQuery;
             if (brand && brand !== "All brands") body.BrandName = brand;
             if (category && category !== "All") body.Category = category;
+            if (extraFilters?.modelName) body.ModelName = extraFilters.modelName;
+            if (extraFilters?.modelNo) body.ModelNo = extraFilters.modelNo;
+            if (extraFilters?.serialNo) body.SerialNo = extraFilters.serialNo;
+            if (extraFilters?.color) body.Color = extraFilters.color;
+            if (extraFilters?.strapMaterial) body.StrapMaterial = extraFilters.strapMaterial;
             
-            return apiRequest<any[]>("post", `/Watch/search`, body);
+            return apiRequest<any>("post", `/Watch/search${qs({ page, pageSize })}`, body);
         },
     },
 
