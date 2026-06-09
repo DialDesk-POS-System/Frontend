@@ -7,7 +7,20 @@ export type SearchGroupItem =
     | { type: "watch"; item: WatchModel }
     | { type: "model"; items: WatchModel[]; firstItem: WatchModel };
 
-export const useSearch = (query: string, brand: string, activeCat: string) => {
+export interface ExtraFilters {
+    modelName?: string;
+    modelNo?: string;
+    serialNo?: string;
+    color?: string;
+    strapMaterial?: string;
+}
+
+export const useSearch = (
+    query: string,
+    brand: string,
+    activeCat: string,
+    extraFilters?: ExtraFilters
+) => {
     const [groupItems, setGroupItems] = useState<SearchGroupItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -22,7 +35,9 @@ export const useSearch = (query: string, brand: string, activeCat: string) => {
             setLoading(true);
             setError(null);
             try {
-                const res: PaginatedResponse<SearchGroupItem> = await api.watches.search(query, brand, activeCat, page, pageSize);
+                const res: PaginatedResponse<SearchGroupItem> = await api.watches.search(
+                    query, brand, activeCat, page, pageSize, extraFilters
+                );
                 setGroupItems(res.items ?? []);
                 setTotalPages(res.totalPages ?? 1);
                 setTotalCount(res.totalCount ?? 0);
@@ -35,7 +50,10 @@ export const useSearch = (query: string, brand: string, activeCat: string) => {
 
         const delay = setTimeout(fetchSearchResult, 500);
         return () => clearTimeout(delay)
-    }, [query, brand, activeCat, page, pageSize]);
+    }, [query, brand, activeCat, page, pageSize,
+        extraFilters?.modelName, extraFilters?.modelNo,
+        extraFilters?.serialNo, extraFilters?.color,
+        extraFilters?.strapMaterial]);
 
     return {
         groupItems,

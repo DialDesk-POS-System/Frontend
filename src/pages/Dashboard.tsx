@@ -4,7 +4,7 @@ import { useAnalytics } from "@/hooks/use-analytics";
 import { useOrders } from "@/hooks/use-orders";
 import { useSales } from "@/hooks/use-sales";
 import { useWatches } from "@/hooks/use-watches";
-import { ArrowUpRight, DollarSign, Package, ShoppingBag, AlertTriangle, TrendingUp } from "lucide-react";
+import { ArrowUpRight, DollarSign, Package, ShoppingBag, AlertTriangle, TrendingUp, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useMemo } from "react";
 
@@ -33,7 +33,11 @@ const Dashboard = () => {
     error: ordersError,
   } = useOrders();
 
-  const recentSales = sales.slice(0, 10);
+  const recentSales = useMemo(() => {
+    return [...sales]
+      .sort((a, b) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime())
+      .slice(0, 10);
+  }, [sales]);
 
   const stats = [
     { label: "Today's Revenue", value: `${"$" + analytics.todayRevenue}`, delta: "+18.2%", icon: DollarSign, accent: "from-emerald-400/30 to-emerald-600/20" },
@@ -69,6 +73,20 @@ const Dashboard = () => {
 
   console.log(computedSalesTrend)
   const max = Math.max(...computedSalesTrend.map(s => s.v), 1);
+  if (analyticsLoading || watchesLoading || salesLoading || ordersLoading) {
+    return (
+      <AppLayout>
+        <Topbar title="Welcome back, Floyd 👋" subtitle="Here's what's happening at Chronos today." />
+        <div className="flex items-center justify-center h-[60vh]">
+          <div className="flex flex-col items-center gap-4 text-muted-foreground">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p>Loading dashboard data...</p>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout>
       <Topbar title="Welcome back, Floyd 👋" subtitle="Here's what's happening at Chronos today." />
@@ -128,7 +146,7 @@ const Dashboard = () => {
             ) : (
               analytics.lowStockModels?.map(a => (
                 <div key={a.modelNo} className="glass-soft rounded-2xl p-3 flex items-center gap-3">
-                  <img src={a.imageryUrl} alt={a.modelName} className="h-10 w-10 rounded-xl object-cover bg-secondary/50" />
+                  <img src={a.imageryUrl || "https://images.unsplash.com/photo-1524592094714-cb9c5a4d5d14?auto=format&fit=crop&q=80&w=200"} onError={(e) => { e.currentTarget.src = "https://images.unsplash.com/photo-1524592094714-cb9c5a4d5d14?auto=format&fit=crop&q=80&w=200"; }} alt={a.modelName} className="h-10 w-10 rounded-xl object-cover bg-secondary/50" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold truncate">{a.modelName}</p>
                     <p className="text-[11px] text-muted-foreground truncate">{a.modelNo}</p>
@@ -144,7 +162,7 @@ const Dashboard = () => {
           <div className="space-y-3">
             {watches.slice(0, 3).map(w => (
               <div key={w.id} className="flex items-center gap-3">
-                <img src={w.imageryUrl} alt={w.modelName} loading="lazy" className="h-11 w-11 rounded-xl object-cover" />
+                <img src={w.imageryUrl || "https://images.unsplash.com/photo-1524592094714-cb9c5a4d5d14?auto=format&fit=crop&q=80&w=200"} onError={(e) => { e.currentTarget.src = "https://images.unsplash.com/photo-1524592094714-cb9c5a4d5d14?auto=format&fit=crop&q=80&w=200"; }} alt={w.modelName} loading="lazy" className="h-11 w-11 rounded-xl object-cover" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold truncate">{w.modelName}</p>
                   <p className="text-[11px] text-muted-foreground">{w.brandName} · {w.modelName}</p>
