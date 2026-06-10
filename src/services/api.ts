@@ -228,15 +228,8 @@ export const api = {
             apiRequest<any>("get", `/Warranty/watch/${watchId}`),
         create:         async (dto: any) =>
             apiRequest<any>("post", `/Warranty`, dto),
-        claim: async (warrantyId: number, claimDate: string | Date) => {
-            const claimDateStr = claimDate instanceof Date
-                ? claimDate.toISOString()
-                : claimDate;
-            return apiRequest<void>(
-                "put",
-                `/Warranty/claim/${warrantyId}${qs({ claimDate: claimDateStr })}`
-            );
-        },
+        claim: async (warrantyId: number) => 
+                 apiRequest<void>("put",`/Warranty/claim/${warrantyId}`),
         delete: async (warrantyId: number) =>
             apiRequest<void>("delete", `/Warranty/${warrantyId}`),
     },
