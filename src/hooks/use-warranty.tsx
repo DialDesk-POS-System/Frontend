@@ -61,3 +61,7 @@ export const useWarrenty = () =>{
         setPage
     };
 }
+
+const fetchById = async (id:number)=>{
+    
+}
